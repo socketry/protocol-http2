@@ -119,7 +119,7 @@ module Protocol
 				send_goaway(error.code || PROTOCOL_ERROR, error.message)
 				
 				raise
-			rescue HTTP::HPACK::CompressionError => error
+			rescue HPACK::CompressionError => error
 				send_goaway(COMPRESSION_ERROR, error.message)
 				
 				raise

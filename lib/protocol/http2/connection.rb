@@ -21,9 +21,7 @@
 require_relative 'framer'
 require_relative 'flow_control'
 
-require 'http/hpack/context'
-require 'http/hpack/compressor'
-require 'http/hpack/decompressor'
+require 'protocol/hpack'
 
 module Protocol
 	module HTTP2
@@ -41,8 +39,8 @@ module Protocol
 				@local_settings = PendingSettings.new
 				@remote_settings = Settings.new
 				
-				@decoder = ::HTTP::HPACK::Context.new
-				@encoder = ::HTTP::HPACK::Context.new
+				@decoder = HPACK::Context.new
+				@encoder = HPACK::Context.new
 				
 				@local_window = Window.new(@local_settings.initial_window_size)
 				@remote_window = Window.new(@remote_settings.initial_window_size)
@@ -87,13 +85,13 @@ module Protocol
 			end
 			
 			def encode_headers(headers, buffer = String.new.b)
-				::HTTP::HPACK::Compressor.new(buffer, @encoder).encode(headers)
+				HPACK::Compressor.new(buffer, @encoder).encode(headers)
 				
 				return buffer
 			end
 			
 			def decode_headers(data)
-				::HTTP::HPACK::Decompressor.new(data, @decoder).decode
+				HPACK::Decompressor.new(data, @decoder).decode
 			end
 			
 			# Streams are identified with an unsigned 31-bit integer.  Streams initiated by a client MUST use odd-numbered stream identifiers; those initiated by the server MUST use even-numbered stream identifiers.  A stream identifier of zero (0x0) is used for connection control messages; the stream identifier of zero cannot be used to establish a new stream.
@@ -121,7 +119,7 @@ module Protocol
 				send_goaway(error.code || PROTOCOL_ERROR, error.message)
 				
 				raise
-			rescue ::HTTP::HTTP::HPACK::CompressionError => error
+			rescue HTTP::HPACK::CompressionError => error
 				send_goaway(COMPRESSION_ERROR, error.message)
 				
 				raise

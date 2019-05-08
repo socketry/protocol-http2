@@ -69,7 +69,7 @@ module Protocol
 				string = @stream.read(CONNECTION_PREFACE_MAGIC.bytesize)
 				
 				unless string == CONNECTION_PREFACE_MAGIC
-					raise ProtocolError, "Invalid connection preface: #{string.inspect}"
+					raise HandshakeError, "Invalid connection preface: #{string.inspect}"
 				end
 				
 				return string

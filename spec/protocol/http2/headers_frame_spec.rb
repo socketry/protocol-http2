@@ -93,7 +93,9 @@ RSpec.describe Protocol::HTTP2::HeadersFrame do
 			
 			expect(client).to receive(:receive_goaway).once.and_call_original
 			
-			client.read_frame
+			expect do
+				client.read_frame
+			end.to raise_error(Protocol::HTTP2::GoawayError)
 		end
 	end
 end

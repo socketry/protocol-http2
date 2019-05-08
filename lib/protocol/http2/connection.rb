@@ -149,6 +149,12 @@ module Protocol
 			
 			def receive_goaway(frame)
 				@state = :closed
+				
+				last_stream_id, error_code, message = frame.unpack
+				
+				if error_code != 0
+					raise GoawayError.new message, error_code
+				end
 			end
 			
 			def write_frame(frame)

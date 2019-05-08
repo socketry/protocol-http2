@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
 	spec.require_paths = ["lib"]
 	
 	spec.add_dependency "protocol-hpack", "~> 1.0"
-	spec.add_dependency "protocol-http"
+	spec.add_dependency "protocol-http", "~> 0.2"
 	
 	spec.add_development_dependency "covered"
 	spec.add_development_dependency "bundler"

@@ -58,6 +58,7 @@ module Protocol
 				if value <= MAXIMUM_ALLOWED_WINDOW_SIZE
 					@initial_window_size = value
 				else
+					# An endpoint MUST treat a change to SETTINGS_INITIAL_WINDOW_SIZE that causes any flow-control window to exceed the maximum size as a connection error of type FLOW_CONTROL_ERROR.
 					raise FlowControlError, "Invalid value for initial_window_size: #{value} > #{MAXIMUM_ALLOWED_WINDOW_SIZE}"
 				end
 			end
@@ -158,7 +159,7 @@ module Protocol
 					
 					return changes
 				else
-					raise ProtocolError.new("Cannot acknowledge settings, no changes pending")
+					raise ProtocolError, "Cannot acknowledge settings, no changes pending"
 				end
 			end
 			

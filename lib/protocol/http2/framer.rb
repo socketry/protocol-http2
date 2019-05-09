@@ -102,11 +102,12 @@ module Protocol
 			
 			def read_header
 				if buffer = @stream.read(9)
-					return Frame.parse_header(buffer)
-				else
-					# TODO: Is this necessary? I thought the IO would throw this.
-					raise EOFError
+					if buffer.bytesize == 9
+						return Frame.parse_header(buffer)
+					end
 				end
+				
+				raise EOFError, "Could not read frame header!"
 			end
 		end
 	end

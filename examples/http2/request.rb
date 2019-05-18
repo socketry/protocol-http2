@@ -3,12 +3,12 @@ $LOAD_PATH.unshift File.expand_path("../../lib", __dir__)
 
 require 'async'
 require 'async/io/stream'
-require 'async/http/url_endpoint'
+require 'async/http/endpoint'
 require 'protocol/http2/client'
 require 'pry'
 
 Async.run do
-	endpoint = Async::HTTP::URLEndpoint.parse("https://www.google.com/search?q=kittens")
+	endpoint = Async::HTTP::Endpoint.parse("https://www.google.com/search?q=kittens")
 	
 	peer = endpoint.connect
 	

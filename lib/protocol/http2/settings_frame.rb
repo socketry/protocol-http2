@@ -29,6 +29,7 @@ module Protocol
 			INITIAL_WINDOW_SIZE = 0x4
 			MAXIMUM_FRAME_SIZE = 0x5
 			MAXIMUM_HEADER_LIST_SIZE = 0x6
+			ENABLE_CONNECT_PROTOCOL = 0x8
 			
 			# Allows the sender to inform the remote endpoint of the maximum size of the header compression table used to decode header blocks, in octets.
 			attr_accessor :header_table_size
@@ -37,7 +38,7 @@ module Protocol
 			attr :enable_push
 			
 			def enable_push= value
-				if @enable_push == 0 || @enable_push == 1
+				if value == 0 or value == 1
 					@enable_push = value
 				else
 					raise ProtocolError, "Invalid value for enable_push: #{value}"
@@ -45,7 +46,7 @@ module Protocol
 			end
 			
 			def enable_push?
-				@enable_push != 0
+				@enable_push == 1
 			end
 			
 			# Indicates the maximum number of concurrent streams that the sender will allow.
@@ -77,6 +78,20 @@ module Protocol
 			# This advisory setting informs a peer of the maximum size of header list that the sender is prepared to accept, in octets.
 			attr_accessor :maximum_header_list_size
 			
+			attr :enable_connect_protocol
+			
+			def enable_connect_protocol= value
+				if value == 0 or value == 1
+					@enable_connect_protocol = value
+				else
+					raise ProtocolError, "Invalid value for enable_connect_protocol: #{value}"
+				end
+			end
+			
+			def enable_connect_protocol?
+				@enable_connect_protocol == 1
+			end
+			
 			def initialize
 				# These limits are taken from the RFC:
 				# https://tools.ietf.org/html/rfc7540#section-6.5.2
@@ -86,6 +101,7 @@ module Protocol
 				@initial_window_size = 0xFFFF # 2**16 - 1
 				@maximum_frame_size = 0x4000 # 2**14
 				@maximum_header_list_size = 0xFFFFFFFF
+				@enable_connect_protocol = 0
 			end
 			
 			ASSIGN = [
@@ -96,6 +112,8 @@ module Protocol
 				:initial_window_size=,
 				:maximum_frame_size=,
 				:maximum_header_list_size=,
+				nil, nil,
+				:enable_connect_protocol=,
 			]
 			
 			def update(changes)
@@ -131,6 +149,10 @@ module Protocol
 				
 				if @maximum_header_list_size != other.maximum_header_list_size
 					changes << [MAXIMUM_HEADER_LIST_SIZE, @maximum_header_list_size]
+				end
+				
+				if @enable_connect_protocol != other.enable_connect_protocol
+					changes << [ENABLE_CONNECT_PROTOCOL, @enable_connect_protocol]
 				end
 				
 				return changes

@@ -61,6 +61,10 @@ module Protocol
 				@stream.close
 			end
 			
+			def closed?
+				@stream.closed?
+			end
+			
 			def write_connection_preface
 				@stream.write(CONNECTION_PREFACE_MAGIC)
 			end

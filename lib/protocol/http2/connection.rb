@@ -79,6 +79,8 @@ module Protocol
 			end
 			
 			def close
+				return if @framer.closed?
+				
 				send_goaway unless closed?
 				
 				@framer.close
@@ -153,7 +155,7 @@ module Protocol
 				last_stream_id, error_code, message = frame.unpack
 				
 				if error_code != 0
-					raise GoawayError, message, error_code
+					raise GoawayError.new(message, error_code)
 				end
 			end
 			

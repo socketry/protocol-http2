@@ -70,6 +70,7 @@ module Protocol
 		#    ES: END_STREAM flag
 		#    R:  RST_STREAM frame
 		#
+		# State transition methods use a trailing "!".
 		class Stream
 			include FlowControl
 			
@@ -85,6 +86,8 @@ module Protocol
 				
 				@headers = nil
 				@data = nil
+				
+				@connection.streams[@id] = self
 			end
 			
 			# Stream ID (odd for client initiated streams, even otherwise).
@@ -116,7 +119,7 @@ module Protocol
 			end
 			
 			def closed?
-				@state == :closed or @state == :reset
+				@state == :closed
 			end
 			
 			def send_headers?
@@ -171,7 +174,7 @@ module Protocol
 					frame = write_headers(*args)
 					
 					if frame.end_stream?
-						close
+						close!
 					end
 				else
 					raise ProtocolError, "Cannot send headers in state: #{@state}"
@@ -207,15 +210,16 @@ module Protocol
 					frame = write_data(*args)
 					
 					if frame.end_stream?
-						close
+						close!
 					end
 				else
 					raise ProtocolError, "Cannot send data in state: #{@state}"
 				end
 			end
 			
-			def close(state = :closed)
-				@state = state
+			# This is not the same as a `close` method. If you are looking for that, use `send_stream_reset`.
+			def close!
+				@state = :closed
 			end
 			
 			def send_reset_stream(error_code = 0)
@@ -225,7 +229,7 @@ module Protocol
 					
 					write_frame(frame)
 					
-					close(:reset)
+					close!
 				else
 					raise ProtocolError, "Cannot reset stream in state: #{@state}"
 				end
@@ -263,12 +267,10 @@ module Protocol
 					@headers = process_headers(frame)
 				elsif @state == :half_closed_local
 					if frame.end_stream?
-						close
+						close!
 					end
 					
 					@headers = process_headers(frame)
-				elsif @state == :reset
-					# ignore...
 				else
 					raise ProtocolError, "Cannot receive headers in state: #{@state}"
 				end
@@ -288,12 +290,10 @@ module Protocol
 					consume_local_window(frame)
 					
 					if frame.end_stream?
-						close
+						close!
 					end
 					
 					@data = frame.unpack
-				elsif @state == :reset
-					# ignore...
 				else
 					raise ProtocolError, "Cannot receive data in state: #{@state}"
 				end
@@ -305,7 +305,7 @@ module Protocol
 			
 			def receive_reset_stream(frame)
 				if @state != :idle and @state != :closed
-					close
+					close!
 					
 					return frame.unpack
 				else
@@ -343,15 +343,16 @@ module Protocol
 				end
 			end
 			
-			def create_promise_stream(headers, stream_id)
-				@connection.create_stream(stream_id)
+			# Override this function to implement your own push promise logic.
+			def create_push_promise_stream(headers)
+				@connection.create_push_promise_stream
 			end
 			
 			# Server push is semantically equivalent to a server responding to a request; however, in this case, that request is also sent by the server, as a PUSH_PROMISE frame.
 			# @param headers [Hash] contains a complete set of request header fields that the server attributes to the request.
-			def send_push_promise(headers, stream_id = @connection.next_stream_id)
+			def send_push_promise(headers)
 				if @state == :open or @state == :half_closed_remote
-					promised_stream = self.create_promise_stream(headers, stream_id)
+					promised_stream = self.create_push_promise_stream(headers)
 					promised_stream.reserved_local!
 					
 					write_push_promise(promised_stream.id, headers)
@@ -362,11 +363,16 @@ module Protocol
 				end
 			end
 			
+			# Override this function to implement your own push promise logic.
+			def accept_push_promise_stream(stream_id, headers)
+				@connection.accept_push_promise_stream(stream_id)
+			end
+			
 			def receive_push_promise(frame)
 				promised_stream_id, data = frame.unpack
 				headers = @connection.decode_headers(data)
 				
-				stream = self.create_promise_stream(headers, promised_stream_id)
+				stream = self.accept_push_promise_stream(promised_stream_id, headers)
 				stream.reserved_remote!
 				
 				return stream, headers

@@ -274,8 +274,9 @@ module Protocol
 				false
 			end
 			
-			# Accept a stream from the other side of the connnection.
-			def accept_stream(stream_id)
+			# Accept an incoming stream from the other side of the connnection.
+			# On the server side, we accept requests.
+			def accept_stream(stream_id, &block)
 				unless valid_remote_stream_id?(stream_id)
 					raise ProtocolError, "Invalid remote stream id: #{stream_id}"
 				end
@@ -285,14 +286,36 @@ module Protocol
 				end
 				
 				@remote_stream_id = stream_id
-				create_stream(stream_id)
+				
+				create_stream(stream_id, &block)
 			end
 			
-			# Create a stream on this side of the connection.
-			def create_stream(stream_id = next_stream_id)
-				@streams[stream_id] = Stream.new(self, stream_id)
+			def accept_push_promise_stream(stream_id, &block)
+				accept_stream(stream_id, &block)
 			end
 			
+			# Create a stream, defaults to an outgoing stream.
+			# On the client side, we create requests.
+			# @return [Stream] the created stream.
+			def create_stream(stream_id = next_stream_id, &block)
+				if block_given?
+					yield(stream_id)
+				else
+					return Stream.new(self, stream_id)
+				end
+				
+				if stream = @streams[stream_id]
+					return stream
+				else
+					raise ProtocolError, "Stream creation failed!"
+				end
+			end
+			
+			def create_push_promise_stream(&block)
+				create_stream(&block)
+			end
+			
+			# On the server side, starts a new request.
 			def receive_headers(frame)
 				if frame.stream_id == 0
 					raise ProtocolError, "Cannot receive headers for stream 0!"
@@ -310,6 +333,7 @@ module Protocol
 				end
 			end
 			
+			# On the client and server side, sets the priority for an incoming stream.
 			def receive_priority(frame)
 				if stream = @streams[frame.stream_id]
 					stream.receive_priority(frame)
@@ -317,6 +341,10 @@ module Protocol
 					stream = accept_stream(frame.stream_id)
 					stream.receive_priority(frame)
 				end
+			end
+			
+			def receive_push_promise(frame)
+				raise ProtocolError, "Unable to receive push promise!"
 			end
 			
 			def receive_reset_stream(frame)

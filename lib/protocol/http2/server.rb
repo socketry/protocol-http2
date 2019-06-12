@@ -45,12 +45,12 @@ module Protocol
 				end
 			end
 			
-			def enable_push?
-				@remote_settings.enable_push?
+			def accept_push_promise_stream(stream_id, &block)
+				raise ProtocolError, "Cannot accept push promises on server!"
 			end
 			
-			def receive_push_promise
-				raise ProtocolError, "Server cannot receive push promises."
+			def enable_push?
+				@remote_settings.enable_push?
 			end
 		end
 	end

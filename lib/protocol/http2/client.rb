@@ -47,13 +47,6 @@ module Protocol
 				end
 			end
 			
-			# Accept an incoming push promise from the other side of the connection.
-			# On the client side, we accept push promise streams.
-			# On the server side, streams create push promise streams.
-			def accept_push_promise_stream(stream_id, &block)
-				accept_stream(stream_id, &block)
-			end
-			
 			def create_push_promise_stream
 				raise ProtocolError, "Cannot create push promises from client!"
 			end

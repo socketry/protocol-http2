@@ -37,9 +37,21 @@ module Protocol
 				super
 				
 				unless end_headers?
-					@continuation = ContinuationFrame.new
+					continuation = ContinuationFrame.new
+					continuation.read_header(stream)
 					
-					@continuation.read(stream, maximum_frame_size)
+					# We validate the frame type here:
+					unless continuation.valid_type?
+						raise ProtocolError, "Invalid frame type: #{@type}!"
+					end
+					
+					if continuation.stream_id != @stream_id
+						raise ProtocolError, "Invalid stream id: #{continuation.stream_id} for continuation of stream id: #{@stream_id}!"
+					end
+					
+					continuation.read(stream, maximum_frame_size)
+					
+					@continuation = continuation
 				end
 			end
 			
@@ -93,16 +105,6 @@ module Protocol
 			include Continued
 			
 			TYPE = 0x9
-			
-			def read(*)
-				result = super
-				
-				if @type != TYPE
-					raise ProtocolError, "Received non-continuation frame: #{self.type}"
-				end
-				
-				return result
-			end
 			
 			# This is only invoked if the continuation is received out of the normal flow.
 			def apply(connection)

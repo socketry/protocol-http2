@@ -31,8 +31,6 @@ module Protocol
 				# These two fields are primarily used for efficiently sending window updates:
 				@used = 0
 				@capacity = capacity
-				
-				fail unless capacity
 			end
 			
 			def dup
@@ -41,7 +39,7 @@ module Protocol
 			
 			# The window is completely full?
 			def full?
-				@available.zero?
+				@available <= 0
 			end
 			
 			attr :used
@@ -67,6 +65,10 @@ module Protocol
 			def expand(amount)
 				@available += amount
 				@used -= amount
+				
+				if @available > MAXIMUM_ALLOWED_WINDOW_SIZE
+					raise FlowControlError, "Expanding window by #{amount} caused overflow: #{@available} > #{MAXIMUM_ALLOWED_WINDOW_SIZE}!"
+				end
 			end
 			
 			def limited?

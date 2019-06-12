@@ -27,6 +27,8 @@ module Protocol
 				maximum_frame_size = self.maximum_frame_size
 				available_size = @remote_window.available
 				
+				# puts "available_size=#{available_size} maximum_frame_size=#{maximum_frame_size}"
+				
 				if available_size < maximum_frame_size
 					return available_size
 				else
@@ -71,8 +73,14 @@ module Protocol
 			def receive_window_update(frame)
 				was_full = @remote_window.full?
 				
-				# puts "expand remote_window=#{@remote_window} by #{frame.unpack}"
-				@remote_window.expand(frame.unpack)
+				amount = frame.unpack
+				# puts "expand remote_window=#{@remote_window} by #{amount}"
+				
+				if amount != 0
+					@remote_window.expand(amount)
+				else
+					raise ProtocolError, "Invalid window size increment: #{amount}!"
+				end
 				
 				self.window_updated if was_full
 			end

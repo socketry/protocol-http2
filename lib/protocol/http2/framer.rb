@@ -83,10 +83,10 @@ module Protocol
 				# Read the header:
 				length, type, flags, stream_id = read_header
 				
-				# puts "framer: read_frame #{type} #{length}"
-				
 				# Allocate the frame:
 				klass = @frames[type] || Frame
+				# puts "framer: read_frame #{klass} id=#{stream_id} length=#{length} flags=#{flags}"
+				
 				frame = klass.new(stream_id, flags, type, length)
 				
 				# Read the payload:

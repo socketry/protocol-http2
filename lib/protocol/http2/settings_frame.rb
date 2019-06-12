@@ -68,10 +68,12 @@ module Protocol
 			attr :maximum_frame_size
 			
 			def maximum_frame_size= value
-				if value <= MAXIMUM_ALLOWED_FRAME_SIZE
-					@maximum_frame_size = value
-				else
+				if value > MAXIMUM_ALLOWED_FRAME_SIZE
 					raise ProtocolError, "Invalid value for maximum_frame_size: #{value} > #{MAXIMUM_ALLOWED_FRAME_SIZE}"
+				elsif value < MINIMUM_ALLOWED_FRAME_SIZE
+					raise ProtocolError, "Invalid value for maximum_frame_size: #{value} < #{MINIMUM_ALLOWED_FRAME_SIZE}"
+				else
+					@maximum_frame_size = value
 				end
 			end
 			

@@ -77,8 +77,6 @@ module Protocol
 				@connection = connection
 				@id = id
 				
-				@connection.streams[@id] = self
-				
 				@state = :idle
 				
 				@priority = nil
@@ -165,7 +163,7 @@ module Protocol
 					frame = write_headers(*args)
 					
 					if frame.end_stream?
-						close!
+						close
 					end
 				else
 					raise ProtocolError, "Cannot send headers in state: #{@state}"
@@ -201,17 +199,15 @@ module Protocol
 					frame = write_data(*args)
 					
 					if frame.end_stream?
-						close!
+						close
 					end
 				else
 					raise ProtocolError, "Cannot send data in state: #{@state}"
 				end
 			end
 			
-			def close!(state = :closed)
+			def close(state = :closed)
 				@state = state
-				
-				@connection.streams.delete(@id)
 			end
 			
 			def send_reset_stream(error_code = 0)
@@ -221,7 +217,7 @@ module Protocol
 					
 					write_frame(frame)
 					
-					close!(:reset)
+					close(:reset)
 				else
 					raise ProtocolError, "Cannot reset stream in state: #{@state}"
 				end
@@ -259,7 +255,7 @@ module Protocol
 					@headers = process_headers(frame)
 				elsif @state == :half_closed_local
 					if frame.end_stream?
-						close!
+						close
 					end
 					
 					@headers = process_headers(frame)
@@ -284,7 +280,7 @@ module Protocol
 					consume_local_window(frame)
 					
 					if frame.end_stream?
-						close!
+						close
 					end
 					
 					@data = frame.unpack
@@ -301,7 +297,7 @@ module Protocol
 			
 			def receive_reset_stream(frame)
 				if @state != :idle and @state != :closed
-					close!
+					close
 					
 					return frame.unpack
 				else
@@ -366,6 +362,10 @@ module Protocol
 				stream.reserved_remote!
 				
 				return stream, headers
+			end
+			
+			def inspect
+				"\#<#{self.class} id=#{@id} state=#{@state}>"
 			end
 		end
 	end

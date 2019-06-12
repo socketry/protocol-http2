@@ -93,6 +93,21 @@ module Protocol
 			include Continued
 			
 			TYPE = 0x9
+			
+			def read(*)
+				result = super
+				
+				if @type != TYPE
+					raise ProtocolError, "Received non-continuation frame: #{self.type}"
+				end
+				
+				return result
+			end
+			
+			# This is only invoked if the continuation is received out of the normal flow.
+			def apply(connection)
+				connection.receive_continuation(self)
+			end
 		end
 	end
 end

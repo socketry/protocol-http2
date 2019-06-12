@@ -27,6 +27,10 @@ module Protocol
 				super(framer, 2)
 			end
 			
+			def valid_remote_stream_id?(stream_id)
+				stream_id.odd?
+			end
+			
 			def read_connection_preface(settings = [])
 				if @state == :new
 					@framer.read_connection_preface

@@ -86,6 +86,12 @@ module Protocol
 			attr :code
 		end
 		
+		class StreamClosed < ProtocolError
+			def initialize(message)
+				super message, STREAM_CLOSED
+			end
+		end
+		
 		class GoawayError < ProtocolError
 		end
 		

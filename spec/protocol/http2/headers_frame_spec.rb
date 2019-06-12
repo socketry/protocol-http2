@@ -76,7 +76,7 @@ RSpec.describe Protocol::HTTP2::HeadersFrame do
 			server.open!
 			
 			# We force this to something low so we can exceed it without hitting the socket buffer:
-			server.local_settings.current.maximum_frame_size = 128
+			server.local_settings.current.instance_variable_set(:@maximum_frame_size, 128)
 		end
 		
 		let(:stream) {Protocol::HTTP2::Stream.new(client)}

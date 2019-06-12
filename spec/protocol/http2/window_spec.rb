@@ -34,7 +34,7 @@ RSpec.describe Protocol::HTTP2::Window do
 	end
 	
 	let(:stream) do
-		Protocol::HTTP2::Stream.new(client)
+		client.create_stream
 	end
 	
 	before do

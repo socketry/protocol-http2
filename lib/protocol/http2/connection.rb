@@ -50,6 +50,7 @@ module Protocol
 				0
 			end
 			
+			# The size of a frame payload is limited by the maximum size that a receiver advertises in the SETTINGS_MAX_FRAME_SIZE setting.
 			def maximum_frame_size
 				@remote_settings.maximum_frame_size
 			end
@@ -78,11 +79,15 @@ module Protocol
 				@state == :closed
 			end
 			
-			def close
+			def connection_error!(error, message)
 				return if @framer.closed?
 				
-				send_goaway unless closed?
+				send_goaway(error, message)
 				
+				self.close
+			end
+			
+			def close
 				@framer.close
 			end
 			
@@ -117,16 +122,22 @@ module Protocol
 				frame.apply(self)
 				
 				return frame
+			rescue GoawayError
+				# This is not a connection error. We are done.
+				self.close
+				
+				raise
 			rescue ProtocolError => error
-				send_goaway(error.code || PROTOCOL_ERROR, error.message)
+				pp error
+				connection_error!(error.code || PROTOCOL_ERROR, error.message)
 				
 				raise
 			rescue HPACK::CompressionError => error
-				send_goaway(COMPRESSION_ERROR, error.message)
+				connection_error!(COMPRESSION_ERROR, error.message)
 				
 				raise
 			rescue
-				send_goaway(PROTOCOL_ERROR, $!.message)
+				connection_error!(PROTOCOL_ERROR, $!.message)
 				
 				raise
 			end
@@ -236,6 +247,10 @@ module Protocol
 			
 			def receive_ping(frame)
 				if @state != :closed
+					if frame.stream_id != 0
+						raise ProtocolError, "Ping received for non-zero stream!"
+					end
+					
 					unless frame.acknowledgement?
 						reply = frame.acknowledge
 						
@@ -251,17 +266,28 @@ module Protocol
 				
 				if stream = @streams[frame.stream_id]
 					stream.receive_data(frame)
-					
-					if stream.closed?
-						@streams.delete(stream.id)
-					end
 				else
-					raise ProtocolError, "Bad stream"
+					raise ProtocolError, "Cannot receive data for idle stream #{frame.stream_id}"
 				end
 			end
 			
+			def valid_remote_stream_id?
+				false
+			end
+			
+			# Accept a stream from the other side of the connnection.
+			def accept_stream(stream_id)
+				if valid_remote_stream_id?(stream_id) and stream_id > @remote_stream_id
+					@remote_stream_id = stream_id
+					create_stream(stream_id)
+				else
+					raise ProtocolError, "Invalid stream id: #{stream_id}!"
+				end
+			end
+			
+			# Create a stream on this side of the connection.
 			def create_stream(stream_id = next_stream_id)
-				Stream.new(self, stream_id)
+				@streams[stream_id] = Stream.new(self, stream_id)
 			end
 			
 			def receive_headers(frame)
@@ -271,49 +297,30 @@ module Protocol
 				
 				if stream = @streams[frame.stream_id]
 					stream.receive_headers(frame)
-					
-					if stream.closed?
-						@streams.delete(stream.id)
-					end
-				elsif frame.stream_id > @remote_stream_id
+				else
 					if @streams.count < self.maximum_concurrent_streams
-						stream = create_stream(frame.stream_id)
+						stream = accept_stream(frame.stream_id)
 						stream.receive_headers(frame)
-						
-						@remote_stream_id = stream.id
-						@streams[stream.id] = stream
 					else
 						raise ProtocolError, "Exceeded maximum concurrent streams"
 					end
 				end
 			end
 			
-			def deleted_stream? frame
-				frame.stream_id <= @local_stream_id or frame.stream_id <= @remote_stream_id
-			end
-			
 			def receive_priority(frame)
 				if stream = @streams[frame.stream_id]
 					stream.receive_priority(frame)
-				elsif deleted_stream? frame
-					# ignore
 				else
-					stream = create_stream(frame.stream_id)
+					stream = accept_stream(frame.stream_id)
 					stream.receive_priority(frame)
-					
-					@streams[frame.stream_id] = stream
 				end
 			end
 			
 			def receive_reset_stream(frame)
 				if stream = @streams[frame.stream_id]
 					stream.receive_reset_stream(frame)
-					
-					@streams.delete(stream.id)
-				elsif deleted_stream? frame
-					# ignore
 				else
-					raise ProtocolError, "Bad stream"
+					raise StreamClosed, "Cannot reset stream #{frame.stream_id}"
 				end
 			end
 			
@@ -322,10 +329,10 @@ module Protocol
 					super
 				elsif stream = @streams[frame.stream_id]
 					stream.receive_window_update(frame)
-				elsif deleted_stream? frame
-					# ignore
 				else
-					raise ProtocolError, "Cannot update window of non-existant stream: #{frame.stream_id}"
+					stream = accept_stream(frame.stream_id)
+					stream.receive_window_update(frame)
+					# raise ProtocolError, "Cannot update window of idle stream #{frame.stream_id}"
 				end
 			end
 			
@@ -336,8 +343,12 @@ module Protocol
 				end
 			end
 			
+			def receive_continuation(frame)
+				raise ProtocolError, "Received unexpected continuation: #{frame.class}"
+			end
+			
 			def receive_frame(frame)
-				warn "Unhandled frame #{frame.inspect}"
+				# ignore.
 			end
 		end
 	end

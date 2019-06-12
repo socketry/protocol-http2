@@ -29,6 +29,7 @@ module Protocol
 		PRIORITY = 0x20
 		
 		MAXIMUM_ALLOWED_WINDOW_SIZE = 0x7FFFFFFF
+		MINIMUM_ALLOWED_FRAME_SIZE = 0x4000
 		MAXIMUM_ALLOWED_FRAME_SIZE = 0xFFFFFF
 		
 		class Frame
@@ -151,7 +152,11 @@ module Protocol
 			end
 			
 			def read_header(stream)
-				@length, @type, @flags, @stream_id = Frame.parse_header(stream.read(9))
+				if buffer = stream.read(9)
+					@length, @type, @flags, @stream_id = Frame.parse_header(buffer)
+				else
+					raise EOFError, "Could not read frame header!"
+				end
 			end
 			
 			def read_payload(stream)

@@ -148,12 +148,15 @@ module Protocol
 				length = (length_hi << LENGTH_HISHIFT) | length_lo
 				stream_id = stream_id & STREAM_ID_MASK
 				
+				# puts "parse_header: length=#{length} type=#{type} flags=#{flags} stream_id=#{stream_id}"
+				
 				return length, type, flags, stream_id
 			end
 			
 			def read_header(stream)
 				if buffer = stream.read(9)
 					@length, @type, @flags, @stream_id = Frame.parse_header(buffer)
+					# puts "read_header: #{@length} #{@type} #{@flags} #{@stream_id}"
 				else
 					raise EOFError, "Could not read frame header!"
 				end

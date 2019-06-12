@@ -82,10 +82,11 @@ module Protocol
 			def read_frame(maximum_frame_size = MAXIMUM_ALLOWED_FRAME_SIZE)
 				# Read the header:
 				length, type, flags, stream_id = read_header
+				# puts "read_frame: length=#{length} type=#{type} flags=#{flags} stream_id=#{stream_id} -> klass=#{@frames[type].inspect}"
 				
 				# Allocate the frame:
 				klass = @frames[type] || Frame
-				# puts "framer: read_frame #{klass} id=#{stream_id} length=#{length} flags=#{flags}"
+				# puts "read_frame #{klass} id=#{stream_id} length=#{length} flags=#{flags}"
 				
 				frame = klass.new(stream_id, flags, type, length)
 				

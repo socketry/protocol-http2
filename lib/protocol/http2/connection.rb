@@ -277,12 +277,16 @@ module Protocol
 			
 			# Accept a stream from the other side of the connnection.
 			def accept_stream(stream_id)
-				if valid_remote_stream_id?(stream_id) and stream_id > @remote_stream_id
-					@remote_stream_id = stream_id
-					create_stream(stream_id)
-				else
-					raise ProtocolError, "Invalid stream id: #{stream_id}!"
+				unless valid_remote_stream_id?(stream_id)
+					raise ProtocolError, "Invalid remote stream id: #{stream_id} for #{self.class}!"
 				end
+				
+				if stream_id <= @remote_stream_id
+					raise ProtocolError, "Invalid stream id: #{stream_id} <= #{@remote_stream_id}!"
+				end
+				
+				@remote_stream_id = stream_id
+				create_stream(stream_id)
 			end
 			
 			# Create a stream on this side of the connection.
@@ -328,11 +332,14 @@ module Protocol
 				if frame.connection?
 					super
 				elsif stream = @streams[frame.stream_id]
-					stream.receive_window_update(frame)
+					begin
+						stream.receive_window_update(frame)
+					rescue ProtocolError => error
+						stream.send_reset_stream(error.code)
+					end
 				else
-					stream = accept_stream(frame.stream_id)
-					stream.receive_window_update(frame)
-					# raise ProtocolError, "Cannot update window of idle stream #{frame.stream_id}"
+					# Receiving any frame other than HEADERS or PRIORITY on a stream in this state MUST be treated as a connection error of type PROTOCOL_ERROR.
+					raise ProtocolError, "Cannot update window of idle stream #{frame.stream_id}"
 				end
 			end
 			

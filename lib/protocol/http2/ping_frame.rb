@@ -71,8 +71,8 @@ module Protocol
 			def read_payload(stream)
 				super
 				
-				if @length > 8
-					raise FrameSizeError, "Invalid frame length"
+				if @length != 8
+					raise FrameSizeError, "Invalid frame length: #{@length} != 8!"
 				end
 			end
 		end

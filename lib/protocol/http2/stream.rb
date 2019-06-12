@@ -99,6 +99,14 @@ module Protocol
 			attr :local_window
 			attr :remote_window
 			
+			def priority= priority
+				if priority.stream_id == @id
+					raise ProtocolError, "Stream #{@id} cannot depend on itself!"
+				end
+				
+				@priority = priority
+			end
+			
 			def maximum_frame_size
 				@connection.available_frame_size
 			end
@@ -228,7 +236,7 @@ module Protocol
 				priority, data = frame.unpack
 				
 				if priority
-					@priority = priority
+					self.priority = priority
 				end
 				
 				@connection.decode_headers(data)
@@ -292,7 +300,7 @@ module Protocol
 			end
 			
 			def receive_priority(frame)
-				@priority = frame.unpack
+				self.priority = frame.unpack
 			end
 			
 			def receive_reset_stream(frame)

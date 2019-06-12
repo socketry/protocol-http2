@@ -103,8 +103,8 @@ module Protocol
 			attr :remote_window
 			
 			def priority= priority
-				if priority.stream_id == @id
-					raise ProtocolError, "Stream #{@id} cannot depend on itself!"
+				if priority.stream_dependency == @id
+					raise ProtocolError, "Stream priority for stream id #{@id} cannot depend on itself!"
 				end
 				
 				@priority = priority

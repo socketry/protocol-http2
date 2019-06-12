@@ -22,6 +22,9 @@ require_relative 'frame'
 
 module Protocol
 	module HTTP2
+		# Stream Dependency:  A 31-bit stream identifier for the stream that
+		# this stream depends on (see Section 5.3).  This field is only
+		# present if the PRIORITY flag is set.
 		Priority = Struct.new(:exclusive, :stream_dependency, :weight) do
 			FORMAT = "NC".freeze
 			EXCLUSIVE = 1 << 31

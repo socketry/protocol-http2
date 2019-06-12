@@ -128,7 +128,6 @@ module Protocol
 				
 				raise
 			rescue ProtocolError => error
-				pp error
 				connection_error!(error.code || PROTOCOL_ERROR, error.message)
 				
 				raise

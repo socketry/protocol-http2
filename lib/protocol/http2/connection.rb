@@ -278,7 +278,7 @@ module Protocol
 			# Accept a stream from the other side of the connnection.
 			def accept_stream(stream_id)
 				unless valid_remote_stream_id?(stream_id)
-					raise ProtocolError, "Invalid remote stream id: #{stream_id} for #{self.class}!"
+					raise ProtocolError, "Invalid remote stream id: #{stream_id}"
 				end
 				
 				if stream_id <= @remote_stream_id

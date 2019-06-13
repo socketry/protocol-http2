@@ -23,6 +23,7 @@ require_relative 'window_update_frame'
 module Protocol
 	module HTTP2
 		module FlowControl
+			# This could be negative if the window has been overused due to a change in initial window size.
 			def available_frame_size
 				maximum_frame_size = self.maximum_frame_size
 				available_size = @remote_window.available
@@ -82,10 +83,11 @@ module Protocol
 					raise ProtocolError, "Invalid window size increment: #{amount}!"
 				end
 				
-				self.window_updated if was_full
+				self.window_updated(was_full)
 			end
 			
-			def window_updated
+			# This function gets invoked every time the window capacity is increased. It's acceptable to respond to a window size increase by sending data.
+			def window_updated(was_full)
 			end
 		end
 	end

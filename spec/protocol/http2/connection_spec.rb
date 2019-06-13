@@ -74,13 +74,12 @@ RSpec.describe Protocol::HTTP2::Connection do
 		end
 		
 		let(:request_data) {"Hello World!"}
-		let(:stream) {Protocol::HTTP2::Stream.new(client)}
+		let(:stream) {client.create_stream}
 		
 		let(:request_headers) {[[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]}
 		let(:response_headers) {[[':status', '200']]}
 		
 		it "can create new stream and send response" do
-			client.streams[stream.id] = stream
 			stream.send_headers(nil, request_headers)
 			expect(stream.id).to eq 1
 			
@@ -105,6 +104,48 @@ RSpec.describe Protocol::HTTP2::Connection do
 			expect(stream.state).to eq :closed
 			
 			expect(stream.remote_window.used).to eq data_frame.length
+		end
+		
+		it "client can handle graceful shutdown" do
+			stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
+			
+			# Establish request stream on server:
+			server.read_frame
+			
+			# Graceful shutdown
+			server.send_goaway(0)
+			
+			expect(client.read_frame).to be_a Protocol::HTTP2::GoawayFrame
+			expect(client.remote_stream_id).to be == 1
+			expect(client).to be_closed
+			
+			expect(server.streams[1].state).to eq :half_closed_remote
+			
+			server.streams[1].send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)
+			
+			client.read_frame
+			
+			expect(stream.headers).to eq response_headers
+			expect(stream.state).to eq :closed
+		end
+		
+		it "client can handle non-graceful shutdown" do
+			stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
+			
+			# Establish request stream on server:
+			server.read_frame
+			
+			# Send connection error to client:
+			server.send_goaway(1, "Bugger off!")
+			
+			expect(stream).to receive(:close).and_call_original
+			
+			expect do
+				client.read_frame
+			end.to raise_error(Protocol::HTTP2::GoawayError)
+			
+			expect(client.remote_stream_id).to be == 1
+			expect(client).to be_closed
 		end
 	end
 end

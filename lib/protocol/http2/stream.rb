@@ -90,6 +90,10 @@ module Protocol
 				@connection.streams[@id] = self
 			end
 			
+			# The stream is being closed because the connection is being closed.
+			def close(error = nil)
+			end
+			
 			# Stream ID (odd for client initiated streams, even otherwise).
 			attr :id
 
@@ -116,6 +120,10 @@ module Protocol
 			
 			def write_frame(frame)
 				@connection.write_frame(frame)
+			end
+			
+			def active?
+				@state != :closed && @state != :idle
 			end
 			
 			def closed?
@@ -217,11 +225,11 @@ module Protocol
 				end
 			end
 			
-			# This is not the same as a `close` method. If you are looking for that, use `send_stream_reset`.
+			# Transition the stream into the closed state.
 			def close!
 				@state = :closed
 				
-				@connection.stream_closed(self)
+				self.close
 			end
 			
 			def send_reset_stream(error_code = 0)

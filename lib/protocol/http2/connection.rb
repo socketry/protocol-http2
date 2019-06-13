@@ -31,7 +31,6 @@ module Protocol
 			def initialize(framer, local_stream_id)
 				@state = :new
 				@streams = {}
-				@closed = 0
 				
 				@framer = framer
 				@local_stream_id = local_stream_id
@@ -76,28 +75,22 @@ module Protocol
 			# Our window for sending data. When we send data, it reduces this window.
 			attr :remote_window
 			
+			# The highest stream_id that has been successfully accepted by this connection.
+			attr :remote_stream_id
+			
 			def closed?
 				@state == :closed
 			end
 			
-			def stream_closed(stream)
-				@closed += 1
+			def active_streams
+				@streams.each_value.select(&:active?)
 			end
 			
-			def active_stream_count
-				@streams.size - @closed
-			end
-			
-			def connection_error!(error, message)
-				return if @framer.closed?
-				
-				send_goaway(error, message)
-				
-				self.close
-			end
-			
-			def close
+			# Close the underlying framer and all streams.
+			def close(error = nil)
 				@framer.close
+				
+				@streams.each_value{|stream| stream.close(error)}
 			end
 			
 			def encode_headers(headers, buffer = String.new.b)
@@ -121,31 +114,45 @@ module Protocol
 			
 			attr :streams
 			
+			# 6.8. GOAWAY
+			# There is an inherent race condition between an endpoint starting new streams and the remote sending a GOAWAY frame. To deal with this case, the GOAWAY contains the stream identifier of the last peer-initiated stream that was or might be processed on the sending endpoint in this connection. For instance, if the server sends a GOAWAY frame, the identified stream is the highest-numbered stream initiated by the client.
+			# Once sent, the sender will ignore frames sent on streams initiated by the receiver if the stream has an identifier higher than the included last stream identifier. Receivers of a GOAWAY frame MUST NOT open additional streams on the connection, although a new connection can be established for new streams.
+			def ignore_frame?(frame)
+				if self.closed?
+					puts "ignore_frame? #{frame.stream_id} -> #{valid_remote_stream_id?(frame.stream_id)} > #{@remote_stream_id}"
+					if valid_remote_stream_id?(frame.stream_id)
+						return frame.stream_id > @remote_stream_id
+					end
+				end
+			end
+			
+			# Reads one frame from the network and processes. Processing the frame updates the state of the connection and related streams. If the frame triggers an error, e.g. a protocol error, the connection will typically emit a goaway frame and re-raise the exception. You should continue processing frames until the underlying connection is closed.
 			def read_frame
 				frame = @framer.read_frame(@local_settings.maximum_frame_size)
-				# puts "#{self.class} #{@state} read_frame: class=#{frame.class} flags=#{frame.flags} length=#{frame.length}"
+				# puts "#{self.class} #{@state} read_frame: class=#{frame.class} stream_id=#{frame.stream_id} flags=#{frame.flags} length=#{frame.length} (remote_stream_id=#{@remote_stream_id})"
 				# puts "Windows: local_window=#{@local_window.inspect}; remote_window=#{@remote_window.inspect}"
 				
-				yield frame if block_given?
+				return if ignore_frame?(frame)
 				
+				yield frame if block_given?
 				frame.apply(self)
 				
 				return frame
-			rescue GoawayError
-				# This is not a connection error. We are done.
-				self.close
+			rescue GoawayError => error
+				# Go directly to jail. Do not pass go, do not collect $200.
+				self.close(error)
 				
 				raise
 			rescue ProtocolError => error
-				connection_error!(error.code || PROTOCOL_ERROR, error.message)
+				send_goaway(error.code || PROTOCOL_ERROR, error.message)
 				
 				raise
 			rescue HPACK::CompressionError => error
-				connection_error!(COMPRESSION_ERROR, error.message)
+				send_goaway(COMPRESSION_ERROR, error.message)
 				
 				raise
 			rescue
-				connection_error!(PROTOCOL_ERROR, $!.message)
+				send_goaway(PROTOCOL_ERROR, $!.message)
 				
 				raise
 			end
@@ -159,21 +166,31 @@ module Protocol
 				write_frame(frame)
 			end
 			
+			# Transition the connection into the closed state.
+			def close!
+				@state = :closed
+				
+				return self
+			end
+			
+			# Tell the remote end that the connection is being shut down. If the `error_code` is 0, this is a graceful shutdown. The other end of the connection should not make any new streams, but existing streams may be completed.
 			def send_goaway(error_code = 0, message = "")
 				frame = GoawayFrame.new
 				frame.pack @remote_stream_id, error_code, message
 				
 				write_frame(frame)
 				
-				@state = :closed
+				self.close!
 			end
 			
 			def receive_goaway(frame)
-				@state = :closed
+				# We capture the last stream that was processed.
+				@remote_stream_id, error_code, message = frame.unpack
 				
-				last_stream_id, error_code, message = frame.unpack
+				self.close!
 				
 				if error_code != 0
+					# Shut down immediately.
 					raise GoawayError.new(message, error_code)
 				end
 			end
@@ -336,7 +353,7 @@ module Protocol
 				if stream = @streams[frame.stream_id]
 					stream.receive_headers(frame)
 				else
-					if self.active_stream_count < self.maximum_concurrent_streams
+					if self.active_streams.count < self.maximum_concurrent_streams
 						stream = accept_stream(frame.stream_id)
 						stream.receive_headers(frame)
 					else

@@ -79,7 +79,7 @@ RSpec.describe Protocol::HTTP2::HeadersFrame do
 			server.local_settings.current.instance_variable_set(:@maximum_frame_size, 128)
 		end
 		
-		let(:stream) {Protocol::HTTP2::Stream.new(client)}
+		let(:stream) {client.create_stream}
 		
 		it "rejects headers frame that exceeds maximum frame size" do
 			subject.stream_id = stream.id

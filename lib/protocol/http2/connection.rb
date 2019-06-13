@@ -50,6 +50,12 @@ module Protocol
 				0
 			end
 			
+			# This returns all directly dependant streams.
+			def children
+				# TODO inefficient
+				@streams.each_value.select{|stream| stream.parent == self}
+			end
+			
 			# The size of a frame payload is limited by the maximum size that a receiver advertises in the SETTINGS_MAX_FRAME_SIZE setting.
 			def maximum_frame_size
 				@remote_settings.maximum_frame_size
@@ -402,8 +408,8 @@ module Protocol
 				end
 			end
 			
-			def window_updated
-				# This is very inefficient, but workable.
+			def window_updated(was_full)
+				# TODO this is very inefficient, but workable. Should be based on priority.
 				@streams.each_value do |stream|
 					stream.window_updated unless stream.closed?
 				end

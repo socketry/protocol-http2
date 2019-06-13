@@ -88,6 +88,8 @@ module Protocol
 				@data = nil
 				
 				@connection.streams[@id] = self
+				
+				@priority = Priority.default
 			end
 			
 			# The stream is being closed because the connection is being closed.
@@ -106,7 +108,34 @@ module Protocol
 			attr :local_window
 			attr :remote_window
 			
+			def parent
+				id = @priority.stream_dependency
+				
+				if id == 0
+					return @connection
+				else
+					@connection.streams[id]
+				end
+			end
+			
+			def parent= stream
+				@priority.stream_dependency = stream.id
+			end
+			
+			def children
+				# TODO inefficient implementation
+				@connection.streams.each_value.select do |stream|
+					stream.parent == self
+				end
+			end
+			
 			def priority= priority
+				if priority.exclusive and parent = self.parent
+					parent.children.each do |child|
+						child.parent = self
+					end
+				end
+				
 				if priority.stream_dependency == @id
 					raise ProtocolError, "Stream priority for stream id #{@id} cannot depend on itself!"
 				end
@@ -390,6 +419,7 @@ module Protocol
 				headers = @connection.decode_headers(data)
 				
 				stream = self.accept_push_promise_stream(promised_stream_id, headers)
+				stream.parent = self
 				stream.reserved_remote!
 				
 				return stream, headers

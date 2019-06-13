@@ -175,10 +175,13 @@ module Protocol
 			
 			# Tell the remote end that the connection is being shut down. If the `error_code` is 0, this is a graceful shutdown. The other end of the connection should not make any new streams, but existing streams may be completed.
 			def send_goaway(error_code = 0, message = "")
-				frame = GoawayFrame.new
-				frame.pack @remote_stream_id, error_code, message
-				
-				write_frame(frame)
+				# There is every chance that the connection has been closed by this point, so don't try to write the frame.
+				if !@framer.closed?
+					frame = GoawayFrame.new
+					frame.pack @remote_stream_id, error_code, message
+					
+					write_frame(frame)
+				end
 				
 				self.close!
 			end

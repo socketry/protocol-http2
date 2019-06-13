@@ -226,10 +226,15 @@ module Protocol
 			end
 			
 			# Transition the stream into the closed state.
-			def close!
+			# @param error_code [Integer] the error code if the stream was closed due to a stream reset.
+			def close!(error_code = nil)
 				@state = :closed
 				
-				self.close
+				if error_code
+					error = EOFError.new("Stream reset: error_code=#{error_code}")
+				end
+				
+				self.close(error)
 			end
 			
 			def send_reset_stream(error_code = 0)
@@ -315,9 +320,11 @@ module Protocol
 			
 			def receive_reset_stream(frame)
 				if @state != :idle and @state != :closed
-					close!
+					error_code = frame.unpack
 					
-					return frame.unpack
+					close!(error_code)
+					
+					return error_code
 				else
 					raise ProtocolError, "Cannot reset stream in state: #{@state}"
 				end

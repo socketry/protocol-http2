@@ -31,6 +31,7 @@ module Protocol
 			def initialize(framer, local_stream_id)
 				@state = :new
 				@streams = {}
+				@closed = 0
 				
 				@framer = framer
 				@local_stream_id = local_stream_id
@@ -77,6 +78,14 @@ module Protocol
 			
 			def closed?
 				@state == :closed
+			end
+			
+			def stream_closed(stream)
+				@closed += 1
+			end
+			
+			def active_stream_count
+				@streams.size - @closed
 			end
 			
 			def connection_error!(error, message)
@@ -327,7 +336,7 @@ module Protocol
 				if stream = @streams[frame.stream_id]
 					stream.receive_headers(frame)
 				else
-					if @streams.count < self.maximum_concurrent_streams
+					if self.active_stream_count < self.maximum_concurrent_streams
 						stream = accept_stream(frame.stream_id)
 						stream.receive_headers(frame)
 					else

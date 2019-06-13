@@ -220,6 +220,8 @@ module Protocol
 			# This is not the same as a `close` method. If you are looking for that, use `send_stream_reset`.
 			def close!
 				@state = :closed
+				
+				@connection.stream_closed(self)
 			end
 			
 			def send_reset_stream(error_code = 0)

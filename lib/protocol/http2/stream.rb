@@ -129,7 +129,9 @@ module Protocol
 				end
 				
 				def end_stream
-					@stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
+					unless @stream.closed?
+						@stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
+					end
 				end
 			end
 			

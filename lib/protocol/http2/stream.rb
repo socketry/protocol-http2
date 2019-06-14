@@ -75,7 +75,8 @@ module Protocol
 			include FlowControl
 			
 			class Buffer
-				def initialize(chunks = [])
+				def initialize(stream, chunks = [])
+					@stream = stream
 					@chunks = chunks
 				end
 				
@@ -99,22 +100,22 @@ module Protocol
 					@chunks.clear
 				end
 				
-				def window_updated(stream, size)
-					maximum_size = [size, stream.available_size, MAXIMUM_ALLOWED_FRAME_SIZE].max
+				def window_updated(size)
+					maximum_size = [size, @stream.available_frame_size].min
 					
-					self.send_data(stream, maximum_size)
+					self.send_data(maximum_size)
 				end
 				
 				# Send `maximum_size` bytes of data using the specified `stream`. If the buffer has no more chunks, `END_STREAM` will be sent on the final chunk.
 				# @param maximum_size [Integer] send up to this many bytes of data.
 				# @param stream [Stream] the stream to use for sending data frames.
-				def send_data(stream, maximum_size)
+				def send_data(maximum_size)
 					if chunk = self.pop
 						if chunk.bytesize <= maximum_size
 							flags = self.closed? ? ::Protocol::HTTP2::END_STREAM : 0
-							stream.send_data(chunk, flags, maximum_size: maximum_size)
+							@stream.send_data(chunk, flags, maximum_size: maximum_size)
 						else
-							stream.send_data(chunk.byteslice(0, maximum_size), maximum_size: maximum_size)
+							@stream.send_data(chunk.byteslice(0, maximum_size), maximum_size: maximum_size)
 							
 							# The window was not big enough to send all the data, so we save it for next time:
 							self.push(
@@ -124,12 +125,12 @@ module Protocol
 						
 						return true
 					else
-						stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
+						@stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
 					end
 				end
 			end
 			
-			def initialize(connection, id, buffer = nil)
+			def initialize(connection, id)
 				@connection = connection
 				@id = id
 				
@@ -146,7 +147,7 @@ module Protocol
 				
 				@priority = Priority.default
 				
-				@buffer = buffer
+				@buffer = nil
 			end
 			
 			# Stream ID (odd for client initiated streams, even otherwise).

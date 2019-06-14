@@ -21,6 +21,8 @@
 require_relative 'connection'
 require_relative 'flow_control'
 
+require_relative 'node'
+
 module Protocol
 	module HTTP2
 		# A single HTTP 2.0 connection can multiplex multiple streams in parallel:
@@ -71,7 +73,7 @@ module Protocol
 		#    R:  RST_STREAM frame
 		#
 		# State transition methods use a trailing "!".
-		class Stream
+		class Stream < Node
 			include FlowControl
 			
 			class Buffer
@@ -132,8 +134,12 @@ module Protocol
 			end
 			
 			def initialize(connection, id)
+				super(connection)
+				
 				@connection = connection
 				@id = id
+				
+				@children = Set.new
 				
 				@state = :idle
 				
@@ -170,36 +176,23 @@ module Protocol
 				@buffer&.close(error)
 			end
 			
-			def parent
-				id = @priority.stream_dependency
-				
-				if id == 0
-					return @connection
-				else
-					@connection.streams[id]
-				end
-			end
-			
-			def parent= stream
-				@priority.stream_dependency = stream.id
-			end
-			
-			def children
-				# TODO inefficient implementation
-				@connection.streams.each_value.select do |stream|
-					stream.parent == self
-				end
+			def siblings
+				self.parent.children - [self]
 			end
 			
 			def priority= priority
-				if priority.exclusive and parent = self.parent
-					parent.children.each do |child|
-						child.parent = self
-					end
+				parent_id = priority.stream_dependency
+				
+				if parent_id == @id
+					raise ProtocolError, "Stream priority for stream id #{@id} cannot depend on itself!"
 				end
 				
-				if priority.stream_dependency == @id
-					raise ProtocolError, "Stream priority for stream id #{@id} cannot depend on itself!"
+				self.parent = @connection.streams[parent_id]
+				
+				if priority.exclusive
+					siblings.each do |child|
+						child.parent = self
+					end
 				end
 				
 				@priority = priority

@@ -21,14 +21,18 @@
 require_relative 'framer'
 require_relative 'flow_control'
 
+require_relative 'node'
+
 require 'protocol/hpack'
 
 module Protocol
 	module HTTP2
-		class Connection
+		class Connection < Node
 			include FlowControl
 			
 			def initialize(framer, local_stream_id)
+				super()
+				
 				@state = :new
 				@streams = {}
 				
@@ -48,12 +52,6 @@ module Protocol
 			
 			def id
 				0
-			end
-			
-			# This returns all directly dependant streams.
-			def children
-				# TODO inefficient
-				@streams.each_value.select{|stream| stream.parent == self}
 			end
 			
 			# The size of a frame payload is limited by the maximum size that a receiver advertises in the SETTINGS_MAX_FRAME_SIZE setting.

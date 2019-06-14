@@ -125,7 +125,7 @@ module Protocol
 			# Once sent, the sender will ignore frames sent on streams initiated by the receiver if the stream has an identifier higher than the included last stream identifier. Receivers of a GOAWAY frame MUST NOT open additional streams on the connection, although a new connection can be established for new streams.
 			def ignore_frame?(frame)
 				if self.closed?
-					puts "ignore_frame? #{frame.stream_id} -> #{valid_remote_stream_id?(frame.stream_id)} > #{@remote_stream_id}"
+					# puts "ignore_frame? #{frame.stream_id} -> #{valid_remote_stream_id?(frame.stream_id)} > #{@remote_stream_id}"
 					if valid_remote_stream_id?(frame.stream_id)
 						return frame.stream_id > @remote_stream_id
 					end

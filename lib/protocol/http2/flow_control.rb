@@ -87,22 +87,21 @@ module Protocol
 			end
 			
 			# Whether the stream has data it can write.
-			def data_available?
-				# By default, no data is available:
-				false
+			def buffer
+				nil
 			end
 			
-			# Indiciate that there is flow-control capacity available.
+			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
 			# @param amount [Integer] the amount of data to write.
-			def capacity_available(size = self.available_size)
-				if self.data_available?
-					self.write_data([size, self.available_size].max)
+			def consume_window(size = self.available_size)
+				if buffer = self.buffer
+					buffer.send_data([size, self.available_size].max, self)
 				else
 					children = self.children
 					total = children.sum(&:weight)
 					
 					children.each do |child|
-						child.capacity_available((child.weight * size) / total)
+						child.consume_window((child.weight * size) / total)
 					end
 				end
 			end

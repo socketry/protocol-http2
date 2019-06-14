@@ -74,6 +74,54 @@ module Protocol
 		class Stream
 			include FlowControl
 			
+			class Buffer
+				def initialize(chunks = [])
+					@chunks = chunks
+				end
+				
+				def any?
+					@chunks.any?
+				end
+				
+				def empty?
+					@chunks.empty?
+				end
+				
+				def pop
+					@chunks.pop
+				end
+				
+				def push(chunk)
+					@chunks.push(chunk)
+				end
+				
+				def close
+				end
+				
+				# Send `maximum_size` bytes of data using the specified `stream`.
+				# @param maximum_size [Integer] send up to this many bytes of data.
+				# @param stream [Stream] the stream to use for sending data frames.
+				def send_data(maximum_size, stream)
+					if chunk = self.pop
+						if chunk.bytesize <= maximum_size
+							flags = self.empty? ? ::Protocol::HTTP2::END_STREAM : 0
+							stream.send_data(chunk, flags, maximum_size: maximum_size)
+						else
+							stream.send_data(chunk.byteslice(0, maximum_size), maximum_size: maximum_size)
+							
+							# The window was not big enough to send all the data, so we save it for next time:
+							self.push(
+								chunk.byteslice(maximum_size, chunk.bytesize - maximum_size)
+							)
+						end
+						
+						return true
+					else
+						stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
+					end
+				end
+			end
+			
 			def initialize(connection, id = connection.next_stream_id)
 				@connection = connection
 				@id = id
@@ -90,10 +138,8 @@ module Protocol
 				@connection.streams[@id] = self
 				
 				@priority = Priority.default
-			end
-			
-			# The stream is being closed because the connection is being closed.
-			def close(error = nil)
+				
+				@buffer = nil
 			end
 			
 			# Stream ID (odd for client initiated streams, even otherwise).
@@ -107,6 +153,13 @@ module Protocol
 			
 			attr :local_window
 			attr :remote_window
+			
+			attr_accessor :buffer
+			
+			# The stream is being closed because the connection is being closed.
+			def close(error = nil)
+				@buffer&.close(error)
+			end
 			
 			def parent
 				id = @priority.stream_dependency
@@ -234,7 +287,6 @@ module Protocol
 				
 				# This might fail if the data payload was too big:
 				consume_remote_window(frame)
-				
 				write_frame(frame)
 				
 				return frame

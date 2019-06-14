@@ -103,30 +103,31 @@ module Protocol
 				def window_updated(size)
 					maximum_size = [size, @stream.available_frame_size].min
 					
-					self.send_data(maximum_size)
+					if self.any?
+						self.send_data(self.pop, maximum_size)
+					else
+						self.end_stream
+					end
 				end
 				
 				# Send `maximum_size` bytes of data using the specified `stream`. If the buffer has no more chunks, `END_STREAM` will be sent on the final chunk.
 				# @param maximum_size [Integer] send up to this many bytes of data.
 				# @param stream [Stream] the stream to use for sending data frames.
-				def send_data(maximum_size)
-					if chunk = self.pop
-						if chunk.bytesize <= maximum_size
-							flags = self.closed? ? ::Protocol::HTTP2::END_STREAM : 0
-							@stream.send_data(chunk, flags, maximum_size: maximum_size)
-						else
-							@stream.send_data(chunk.byteslice(0, maximum_size), maximum_size: maximum_size)
-							
-							# The window was not big enough to send all the data, so we save it for next time:
-							self.push(
-								chunk.byteslice(maximum_size, chunk.bytesize - maximum_size)
-							)
-						end
-						
-						return true
+				def send_data(chunk, maximum_size)
+					if chunk.bytesize <= maximum_size
+						@stream.send_data(chunk, maximum_size: maximum_size)
 					else
-						@stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
+						@stream.send_data(chunk.byteslice(0, maximum_size), maximum_size: maximum_size)
+						
+						# The window was not big enough to send all the data, so we save it for next time:
+						self.push(
+							chunk.byteslice(maximum_size, chunk.bytesize - maximum_size)
+						)
 					end
+				end
+				
+				def end_stream
+					@stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
 				end
 			end
 			
@@ -490,7 +491,7 @@ module Protocol
 			end
 			
 			def window_updated(size)
-				@buffer&.window_updated(self, size)
+				@buffer&.window_updated(size)
 			end
 			
 			def inspect

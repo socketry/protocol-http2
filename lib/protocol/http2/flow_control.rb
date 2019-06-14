@@ -95,6 +95,8 @@ module Protocol
 			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
 			# @param amount [Integer] the amount of data to write.
 			def consume_window(size = self.available_size)
+				return unless size > 0
+				
 				unless self.window_updated(size)
 					children = self.children
 					total = children.sum(&:weight)

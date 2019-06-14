@@ -143,6 +143,10 @@ module Protocol
 				@priority = priority
 			end
 			
+			def weight
+				@priority.weight
+			end
+			
 			def maximum_frame_size
 				@connection.available_frame_size
 			end

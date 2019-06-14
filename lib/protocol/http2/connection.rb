@@ -408,13 +408,6 @@ module Protocol
 				end
 			end
 			
-			def window_updated(was_full)
-				# TODO this is very inefficient, but workable. Should be based on priority.
-				@streams.each_value do |stream|
-					stream.window_updated unless stream.closed?
-				end
-			end
-			
 			def receive_continuation(frame)
 				raise ProtocolError, "Received unexpected continuation: #{frame.class}"
 			end

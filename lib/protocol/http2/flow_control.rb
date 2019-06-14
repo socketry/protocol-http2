@@ -23,10 +23,14 @@ require_relative 'window_update_frame'
 module Protocol
 	module HTTP2
 		module FlowControl
+			def available_size
+				@remote_window.available
+			end
+			
 			# This could be negative if the window has been overused due to a change in initial window size.
 			def available_frame_size
 				maximum_frame_size = self.maximum_frame_size
-				available_size = @remote_window.available
+				available_size = self.available_size
 				
 				# puts "available_size=#{available_size} maximum_frame_size=#{maximum_frame_size}"
 				
@@ -72,8 +76,6 @@ module Protocol
 			end
 			
 			def receive_window_update(frame)
-				was_full = @remote_window.full?
-				
 				amount = frame.unpack
 				# puts "expand remote_window=#{@remote_window} by #{amount}"
 				
@@ -82,12 +84,27 @@ module Protocol
 				else
 					raise ProtocolError, "Invalid window size increment: #{amount}!"
 				end
-				
-				self.window_updated(was_full)
 			end
 			
-			# This function gets invoked every time the window capacity is increased. It's acceptable to respond to a window size increase by sending data.
-			def window_updated(was_full)
+			# Whether the stream has data it can write.
+			def data_available?
+				# By default, no data is available:
+				false
+			end
+			
+			# Indiciate that there is flow-control capacity available.
+			# @param amount [Integer] the amount of data to write.
+			def capacity_available(size = self.available_size)
+				if self.data_available?
+					self.write_data([size, self.available_size].max)
+				else
+					chilren = self.children
+					total = children.sum(&:weight)
+					
+					children.each do |child|
+						child.capacity_available((child.weight * size) / total)
+					end
+				end
 			end
 		end
 	end

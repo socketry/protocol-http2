@@ -79,12 +79,12 @@ module Protocol
 					@chunks = chunks
 				end
 				
-				def any?
-					@chunks.any?
+				def closed?
+					@chunks.empty?
 				end
 				
-				def empty?
-					@chunks.empty?
+				def any?
+					!self.closed?
 				end
 				
 				def pop
@@ -95,16 +95,23 @@ module Protocol
 					@chunks.push(chunk)
 				end
 				
-				def close
+				def close(error)
+					@chunks.clear
 				end
 				
-				# Send `maximum_size` bytes of data using the specified `stream`.
+				def window_updated(stream, size)
+					maximum_size = [size, stream.available_size, MAXIMUM_ALLOWED_FRAME_SIZE].max
+					
+					self.send_data(stream, maximum_size)
+				end
+				
+				# Send `maximum_size` bytes of data using the specified `stream`. If the buffer has no more chunks, `END_STREAM` will be sent on the final chunk.
 				# @param maximum_size [Integer] send up to this many bytes of data.
 				# @param stream [Stream] the stream to use for sending data frames.
-				def send_data(maximum_size, stream)
+				def send_data(stream, maximum_size)
 					if chunk = self.pop
 						if chunk.bytesize <= maximum_size
-							flags = self.empty? ? ::Protocol::HTTP2::END_STREAM : 0
+							flags = self.closed? ? ::Protocol::HTTP2::END_STREAM : 0
 							stream.send_data(chunk, flags, maximum_size: maximum_size)
 						else
 							stream.send_data(chunk.byteslice(0, maximum_size), maximum_size: maximum_size)
@@ -122,7 +129,7 @@ module Protocol
 				end
 			end
 			
-			def initialize(connection, id = connection.next_stream_id)
+			def initialize(connection, id, buffer = nil)
 				@connection = connection
 				@id = id
 				
@@ -139,7 +146,7 @@ module Protocol
 				
 				@priority = Priority.default
 				
-				@buffer = nil
+				@buffer = buffer
 			end
 			
 			# Stream ID (odd for client initiated streams, even otherwise).
@@ -479,6 +486,10 @@ module Protocol
 				stream.reserved_remote!
 				
 				return stream, headers
+			end
+			
+			def window_updated(size)
+				@buffer&.window_updated(self, size)
 			end
 			
 			def inspect

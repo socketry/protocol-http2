@@ -396,6 +396,8 @@ module Protocol
 			def receive_window_update(frame)
 				if frame.connection?
 					super
+					
+					self.consume_window
 				elsif stream = @streams[frame.stream_id]
 					begin
 						stream.receive_window_update(frame)

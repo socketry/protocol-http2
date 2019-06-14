@@ -86,17 +86,16 @@ module Protocol
 				end
 			end
 			
-			# Whether the stream has data it can write.
-			def buffer
-				nil
+			# The window has been expanded by the given amount.
+			# @return [Boolean] whether the window was used or not.
+			def window_updated(size)
+				return false
 			end
 			
 			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
 			# @param amount [Integer] the amount of data to write.
 			def consume_window(size = self.available_size)
-				if buffer = self.buffer
-					buffer.send_data([size, self.available_size].max, self)
-				else
+				unless self.window_updated(size)
 					children = self.children
 					total = children.sum(&:weight)
 					

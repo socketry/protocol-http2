@@ -98,7 +98,7 @@ module Protocol
 				if self.data_available?
 					self.write_data([size, self.available_size].max)
 				else
-					chilren = self.children
+					children = self.children
 					total = children.sum(&:weight)
 					
 					children.each do |child|

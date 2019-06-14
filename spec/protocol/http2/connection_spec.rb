@@ -147,5 +147,38 @@ RSpec.describe Protocol::HTTP2::Connection do
 			expect(client.remote_stream_id).to be == 1
 			expect(client).to be_closed
 		end
+		
+		it "can stream data" do
+			buffer = Protocol::HTTP2::Stream::Buffer.new(stream, ["C", "B", "A"])
+			stream.buffer = buffer
+			
+			stream.send_headers(nil, request_headers)
+			
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::HeadersFrame)
+			
+			expect(stream.available_frame_size).to be >= 3
+			
+			client.consume_window
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
+			expect(frame.unpack).to be == "A"
+			
+			client.consume_window
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
+			expect(frame.unpack).to be == "B"
+			
+			client.consume_window
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
+			expect(frame.unpack).to be == "C"
+			
+			client.consume_window
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
+			expect(frame.unpack).to be == ""
+			expect(frame).to be_end_stream
+		end
 	end
 end

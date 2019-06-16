@@ -52,7 +52,7 @@ module Protocol
 		CONNECTION_PREFACE_MAGIC = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".freeze
 		
 		class Framer
-			DEBUG = !!ENV['FRAMER_DEBUG']
+			# DEBUG = !!ENV['FRAMER_DEBUG']
 			
 			def initialize(stream, frames = FRAMES)
 				@stream = stream
@@ -95,13 +95,13 @@ module Protocol
 				# Read the payload:
 				frame.read(@stream, maximum_frame_size)
 				
-				DEBUG and puts "read_frame: #{frame.inspect}"
+				# DEBUG and puts "read_frame: #{frame.inspect}"
 				
 				return frame
 			end
 			
 			def write_frame(frame)
-				DEBUG and puts "write_frame: #{frame.inspect}"
+				# DEBUG and puts "write_frame: #{frame.inspect}"
 				frame.write(@stream)
 				
 				@stream.flush

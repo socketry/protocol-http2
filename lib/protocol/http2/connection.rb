@@ -21,13 +21,11 @@
 require_relative 'framer'
 require_relative 'flow_control'
 
-require_relative 'node'
-
 require 'protocol/hpack'
 
 module Protocol
 	module HTTP2
-		class Connection < Node
+		class Connection
 			include FlowControl
 			
 			def initialize(framer, local_stream_id)
@@ -35,6 +33,7 @@ module Protocol
 				
 				@state = :new
 				@streams = {}
+				@children = {}
 				
 				@framer = framer
 				@local_stream_id = local_stream_id
@@ -52,6 +51,18 @@ module Protocol
 			
 			def id
 				0
+			end
+			
+			def parent
+				nil
+			end
+			
+			def [] id
+				if id.zero?
+					self
+				else
+					@streams[id]
+				end
 			end
 			
 			# The size of a frame payload is limited by the maximum size that a receiver advertises in the SETTINGS_MAX_FRAME_SIZE setting.
@@ -87,6 +98,7 @@ module Protocol
 			end
 			
 			def active_streams
+				# TODO inefficient
 				@streams.each_value.select(&:active?)
 			end
 			
@@ -117,6 +129,27 @@ module Protocol
 			end
 			
 			attr :streams
+			attr :children
+			
+			def add_child(stream)
+				@children[stream.id] = stream
+			end
+			
+			def remove_child(stream)
+				@children.delete(stream.id)
+			end
+			
+			def exclusive_child(stream)
+				stream.children = @children
+				
+				@children.each do |child|
+					child.stream_dependency = stream.id
+				end
+				
+				@children = {stream.id => stream}
+				
+				stream.stream_dependency = 0
+			end
 			
 			# 6.8. GOAWAY
 			# There is an inherent race condition between an endpoint starting new streams and the remote sending a GOAWAY frame. To deal with this case, the GOAWAY contains the stream identifier of the last peer-initiated stream that was or might be processed on the sending endpoint in this connection. For instance, if the server sends a GOAWAY frame, the identified stream is the highest-numbered stream initiated by the client.
@@ -318,17 +351,11 @@ module Protocol
 			# Create a stream, defaults to an outgoing stream.
 			# On the client side, we create requests.
 			# @return [Stream] the created stream.
-			def create_stream(stream_id = next_stream_id, &block)
+			def create_stream(id = next_stream_id, &block)
 				if block_given?
-					yield(stream_id)
+					return yield(self, id)
 				else
-					return Stream.new(self, stream_id)
-				end
-				
-				if stream = @streams[stream_id]
-					return stream
-				else
-					raise ProtocolError, "Stream creation failed!"
+					return Stream.create(self, id)
 				end
 			end
 			
@@ -353,10 +380,9 @@ module Protocol
 					
 					if self.active_streams.count < self.maximum_concurrent_streams
 						stream = accept_stream(stream_id)
+						@remote_stream_id = stream_id
 						
 						stream.receive_headers(frame)
-						
-						@remote_stream_id = stream_id
 					else
 						raise ProtocolError, "Exceeded maximum concurrent streams"
 					end

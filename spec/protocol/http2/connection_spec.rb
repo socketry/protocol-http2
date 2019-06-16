@@ -83,24 +83,35 @@ RSpec.describe Protocol::HTTP2::Connection do
 			stream.send_headers(nil, request_headers)
 			expect(stream.id).to eq 1
 			
-			expect(server).to receive(:receive_headers).once.and_call_original
+			expect(server).to receive(:receive_headers).once.and_wrap_original do |method, frame|
+				headers = method.call(frame)
+				
+				expect(headers).to be == request_headers
+			end
+			
 			server.read_frame
 			expect(server.streams).to_not be_empty
-			
-			expect(server.streams[1].headers).to eq request_headers
-			expect(server.streams[1].state).to eq :open
+			expect(server.streams[1].state).to be :open
 			
 			stream.send_data(request_data, Protocol::HTTP2::END_STREAM)
 			expect(stream.state).to eq :half_closed_local
 			
+			expect(server).to receive(:receive_data) do |frame|
+				expect(frame.unpack).to be == request_data
+			end.and_call_original
+			
 			data_frame = server.read_frame
-			expect(server.streams[1].data).to eq request_data
-			expect(server.streams[1].state).to eq :half_closed_remote
+			expect(server.streams[1].state).to be :half_closed_remote
 			
 			server.streams[1].send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)
 			
+			expect(stream).to receive(:receive_headers).once.and_wrap_original do |method, frame|
+				headers = method.call(frame)
+				
+				expect(headers).to be == response_headers
+			end
+			
 			client.read_frame
-			expect(stream.headers).to eq response_headers
 			expect(stream.state).to eq :closed
 			
 			expect(stream.remote_window.used).to eq data_frame.length
@@ -125,7 +136,6 @@ RSpec.describe Protocol::HTTP2::Connection do
 			
 			client.read_frame
 			
-			expect(stream.headers).to eq response_headers
 			expect(stream.state).to eq :closed
 		end
 		
@@ -144,37 +154,36 @@ RSpec.describe Protocol::HTTP2::Connection do
 				client.read_frame
 			end.to raise_error(Protocol::HTTP2::GoawayError)
 			
+			client.close
+			
 			expect(client.remote_stream_id).to be == 1
 			expect(client).to be_closed
 		end
 		
 		it "can stream data" do
-			buffer = Protocol::HTTP2::Stream::Buffer.new(stream, ["C", "B", "A"])
-			stream.buffer = buffer
-			
 			stream.send_headers(nil, request_headers)
+			stream.send_data("A")
+			stream.send_data("B")
+			stream.send_data("C")
+			stream.send_data("", Protocol::HTTP2::END_STREAM)
 			
 			frame = server.read_frame
 			expect(frame).to be_a(Protocol::HTTP2::HeadersFrame)
 			
 			expect(stream.available_frame_size).to be >= 3
 			
-			client.consume_window
 			frame = server.read_frame
 			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
 			expect(frame.unpack).to be == "A"
 			
-			client.consume_window
 			frame = server.read_frame
 			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
 			expect(frame.unpack).to be == "B"
 			
-			client.consume_window
 			frame = server.read_frame
 			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
 			expect(frame.unpack).to be == "C"
 			
-			client.consume_window
 			frame = server.read_frame
 			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
 			expect(frame.unpack).to be == ""

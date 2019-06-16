@@ -21,8 +21,6 @@
 require_relative 'connection'
 require_relative 'flow_control'
 
-require_relative 'node'
-
 module Protocol
 	module HTTP2
 		# A single HTTP 2.0 connection can multiplex multiple streams in parallel:
@@ -73,91 +71,62 @@ module Protocol
 		#    R:  RST_STREAM frame
 		#
 		# State transition methods use a trailing "!".
-		class Stream < Node
+		class Stream
 			include FlowControl
 			
-			class Buffer
-				def initialize(stream, chunks = [])
-					@stream = stream
-					@chunks = chunks
-				end
+			def self.create(connection, id = connection.next_stream_id)
+				local_window = Window.new(connection.local_settings.initial_window_size)
+				remote_window = Window.new(connection.remote_settings.initial_window_size)
 				
-				def closed?
-					@chunks.empty?
-				end
+				stream = self.new(connection, id, local_window, remote_window)
 				
-				def any?
-					!self.closed?
-				end
+				# Create new stream:
+				connection.streams[id] = stream
 				
-				def pop
-					@chunks.pop
-				end
+				return stream
+			end
+			
+			def self.replace(stream)
+				connection = stream.connection
 				
-				def push(chunk)
-					@chunks.push(chunk)
-				end
+				stream = self.new(
+					connection, stream.id, stream.local_window, stream.remote_window,
+					stream.state, stream.dependent_id, stream.weight, stream.children
+				)
 				
-				def close(error)
-					@chunks.clear
-				end
+				# Replace existing stream:
+				connection.streams[stream.id] = stream
 				
-				# @param size [Integer] the maximum amount of data we can send:
-				def window_updated(size)
-					maximum_size = [size, @stream.available_frame_size].min
-					
-					# In theory we could send off multiple frames, but we try to be fair to other streams by only sending off one stream. In theory, if the maximum frame size for this stream is big, a lot of data can be sent in one frame.
-					if self.any?
-						self.send_data(self.pop, maximum_size)
-					else
-						self.end_stream
-					end
-				end
-				
-				# Send `maximum_size` bytes of data using the specified `stream`. If the buffer has no more chunks, `END_STREAM` will be sent on the final chunk.
-				# @param maximum_size [Integer] send up to this many bytes of data.
-				# @param stream [Stream] the stream to use for sending data frames.
-				def send_data(chunk, maximum_size)
-					if chunk.bytesize <= maximum_size
-						@stream.send_data(chunk, maximum_size: maximum_size)
-					else
-						@stream.send_data(chunk.byteslice(0, maximum_size), maximum_size: maximum_size)
-						
-						# The window was not big enough to send all the data, so we save it for next time:
-						self.push(
-							chunk.byteslice(maximum_size, chunk.bytesize - maximum_size)
-						)
-					end
-				end
-				
-				def end_stream
-					@stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
+				return stream
+			end
+			
+			def self.accept(connection, id)
+				if stream = connection.streams[id]
+					self.replace(stream)
+				else
+					self.create(connection, id)
 				end
 			end
 			
-			def initialize(connection, id)
-				super(connection)
-				
+			def initialize(connection, id, local_window, remote_window, state = :idle, dependent_id = 0, weight = 16, children = nil)
 				@connection = connection
 				@id = id
 				
-				@children = Set.new
+				@local_window = local_window
+				@remote_window = remote_window
 				
-				@state = :idle
+				@state = state
 				
-				@priority = nil
-				@local_window = Window.new(connection.local_settings.initial_window_size)
-				@remote_window = Window.new(connection.remote_settings.initial_window_size)
+				# Stream priority:
+				@dependent_id = dependent_id
+				@weight = weight
 				
-				@headers = nil
-				@data = nil
-				
-				@connection.streams[@id] = self
-				
-				@priority = Priority.default
-				
-				@buffer = nil
+				# A cache of streams that have child.dependent_id = self.id
+				@children = children
 			end
+			
+			# Cache of dependent children.
+			attr :children
 			
 			# The connection this stream belongs to.
 			attr :connection
@@ -165,50 +134,73 @@ module Protocol
 			# Stream ID (odd for client initiated streams, even otherwise).
 			attr :id
 
-			# Stream state as defined by HTTP 2.0.
+			# Stream state, e.g. `idle`, `closed`.
 			attr :state
 			
-			attr :headers
-			attr :data
+			# The stream id that this stream depends on, according to the priority.
+			attr :dependent_id
+			
+			# The weight of the stream relative to other siblings.
+			attr :weight
 			
 			attr :local_window
 			attr :remote_window
 			
-			attr_accessor :buffer
-			
-			# The stream is being closed because the connection is being closed.
-			def close(error = nil)
-				@buffer&.close(error)
+			def add_child(stream)
+				@children ||= {}
+				@children[stream.id] = stream
 			end
 			
-			def siblings
-				self.parent.children - [self]
+			def remove_child(stream)
+				@children.delete(stream.id)
+			end
+			
+			def exclusive_child(stream)
+				stream.children = @children
+				
+				@children.each do |child|
+					child.dependent_id = stream.id
+				end
+				
+				@children = {stream.id => stream}
+				
+				stream.dependent_id = @id
+			end
+			
+			def parent= parent
+				# Because this is an expensive operation, we avoid doing it if it's not needed:
+				if parent.id != @dependent_id
+					# Disconnect from current parent:
+					self.parent.remove_child(self)
+					
+					# Add to specified parent:
+					parent.add_child(self)
+					
+					# Update the stream dependency:
+					@dependent_id = parent.id
+				end
+			end
+			
+			def parent
+				@connection[@dependent_id]
 			end
 			
 			def priority= priority
-				parent_id = priority.stream_dependency
+				dependent_id = priority.stream_dependency
 				
-				if parent_id == @id
+				if dependent_id == @id
 					raise ProtocolError, "Stream priority for stream id #{@id} cannot depend on itself!"
 				end
 				
-				if parent_id.zero?
-					self.parent = @connection
-				else
-					self.parent = @connection.streams[parent_id]
-				end
-				
 				if priority.exclusive
-					siblings.each do |child|
-						child.parent = self
-					end
+					self.parent.exclusive_child(self)
+				else
+					self.parent = @connection[dependent_id]
 				end
-				
-				@priority = priority
 			end
 			
-			def weight
-				@priority.weight
+			# The stream is being closed because the connection is being closed.
+			def close(error = nil)
 			end
 			
 			def maximum_frame_size
@@ -235,7 +227,6 @@ module Protocol
 				if send_headers?
 					send_headers(nil, [
 						[':status', status.to_s],
-						['reason', reason]
 					], END_STREAM)
 				else
 					send_reset_stream(PROTOCOL_ERROR)
@@ -365,26 +356,30 @@ module Protocol
 						@state = :open
 					end
 					
-					@headers = process_headers(frame)
+					return process_headers(frame)
 				elsif @state == :reserved_remote
 					@state = :half_closed_local
 					
-					@headers = process_headers(frame)
+					return process_headers(frame)
 				elsif @state == :open
 					if frame.end_stream?
 						@state = :half_closed_remote
 					end
 					
-					@headers = process_headers(frame)
+					return process_headers(frame)
 				elsif @state == :half_closed_local
 					if frame.end_stream?
 						close!
 					end
 					
-					@headers = process_headers(frame)
+					return process_headers(frame)
 				else
 					raise ProtocolError, "Cannot receive headers in state: #{@state}"
 				end
+			end
+			
+			def process_data(frame)
+				# Not implemented.
 			end
 			
 			# DATA frames are subject to flow control and can only be sent when a stream is in the "open" or "half-closed (remote)" state.  The entire DATA frame payload is included in flow control, including the Pad Length and Padding fields if present.  If a DATA frame is received whose stream is not in "open" or "half-closed (local)" state, the recipient MUST respond with a stream error of type STREAM_CLOSED.
@@ -396,15 +391,15 @@ module Protocol
 						@state = :half_closed_remote
 					end
 					
-					@data = frame.unpack
+					process_data(frame)
 				elsif @state == :half_closed_local
 					consume_local_window(frame)
+					
+					process_data(frame)
 					
 					if frame.end_stream?
 						close!
 					end
-					
-					@data = frame.unpack
 				else
 					raise ProtocolError, "Cannot receive data in state: #{@state}"
 				end
@@ -490,10 +485,6 @@ module Protocol
 				stream.reserved_remote!
 				
 				return stream, headers
-			end
-			
-			def window_updated(size)
-				@buffer&.window_updated(size)
 			end
 			
 			def inspect

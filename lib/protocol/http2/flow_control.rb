@@ -100,15 +100,14 @@ module Protocol
 			def consume_window(size = self.available_size)
 				# Don't consume more than the available window size:
 				size = [self.available_size, size].min
-				
 				# puts "consume_window(#{size}) local_window=#{@local_window} remote_window=#{@remote_window}"
 				
 				# Return if there is no window to consume:
 				return unless size > 0
 				
 				# Allow the current flow-controlled instance to use up the window:
-				unless self.window_updated(size)
-					children = self.children.values.sort_by(&:weight)
+				if !self.window_updated(size) and children = self.children
+					children = children.values.sort_by(&:weight)
 					
 					# This must always be at least >= `children.count`, since stream weight can't be 0.
 					total = children.sum(&:weight)

@@ -28,8 +28,7 @@ module Protocol
 			end
 			
 			# This could be negative if the window has been overused due to a change in initial window size.
-			def available_frame_size
-				maximum_frame_size = self.maximum_frame_size
+			def available_frame_size(maximum_frame_size = self.maximum_frame_size)
 				available_size = self.available_size
 				
 				# puts "available_size=#{available_size} maximum_frame_size=#{maximum_frame_size}"
@@ -77,32 +76,47 @@ module Protocol
 			
 			def receive_window_update(frame)
 				amount = frame.unpack
-				# puts "expand remote_window=#{@remote_window} by #{amount}"
+				
+				# puts "expanding remote_window=#{@remote_window} by #{amount}"
 				
 				if amount != 0
 					@remote_window.expand(amount)
 				else
 					raise ProtocolError, "Invalid window size increment: #{amount}!"
 				end
+				
+				# puts "expanded remote_window=#{@remote_window} by #{amount}"
 			end
 			
 			# The window has been expanded by the given amount.
-			# @return [Boolean] whether the window was used or not.
-			def window_updated(size)
+			# @param size [Integer] the maximum amount of data to send.
+			# @return [Boolean] whether the window update was used or not.
+			def window_updated(size = self.available_size)
 				return false
 			end
 			
 			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
-			# @param amount [Integer] the amount of data to write.
+			# @param amount [Integer] the amount of data to write. Defaults to the current window capacity.
 			def consume_window(size = self.available_size)
+				# Don't consume more than the available window size:
+				size = [self.available_size, size].min
+				
+				# puts "consume_window(#{size}) local_window=#{@local_window} remote_window=#{@remote_window}"
+				
+				# Return if there is no window to consume:
 				return unless size > 0
 				
+				# Allow the current flow-controlled instance to use up the window:
 				unless self.window_updated(size)
-					children = self.children
+					children = self.children.sort_by(&:weight)
+					
+					# This must always be at least >= `children.count`, since stream weight can't be 0.
 					total = children.sum(&:weight)
 					
 					children.each do |child|
-						child.consume_window((child.weight * size) / total)
+						# Compute the proportional allocation:
+						allocated = (child.weight * size) / total
+						child.consume_window(allocated)
 					end
 				end
 			end

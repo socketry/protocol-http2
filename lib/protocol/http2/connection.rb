@@ -302,14 +302,8 @@ module Protocol
 			# On the server side, we accept requests.
 			def accept_stream(stream_id, &block)
 				unless valid_remote_stream_id?(stream_id)
-					raise ProtocolError, "Invalid remote stream id: #{stream_id}"
+					raise ProtocolError, "Invalid stream id: #{stream_id}"
 				end
-				
-				if stream_id <= @remote_stream_id
-					raise ProtocolError, "Invalid stream id: #{stream_id} <= #{@remote_stream_id}!"
-				end
-				
-				@remote_stream_id = stream_id
 				
 				create_stream(stream_id, &block)
 			end
@@ -344,16 +338,25 @@ module Protocol
 			
 			# On the server side, starts a new request.
 			def receive_headers(frame)
-				if frame.stream_id == 0
+				stream_id = frame.stream_id
+				
+				if stream_id.zero?
 					raise ProtocolError, "Cannot receive headers for stream 0!"
 				end
 				
-				if stream = @streams[frame.stream_id]
+				if stream = @streams[stream_id]
 					stream.receive_headers(frame)
 				else
+					if stream_id <= @remote_stream_id
+						raise ProtocolError, "Invalid stream id: #{stream_id} <= #{@remote_stream_id}!"
+					end
+					
 					if self.active_streams.count < self.maximum_concurrent_streams
-						stream = accept_stream(frame.stream_id)
+						stream = accept_stream(stream_id)
+						
 						stream.receive_headers(frame)
+						
+						@remote_stream_id = stream_id
 					else
 						raise ProtocolError, "Exceeded maximum concurrent streams"
 					end
@@ -365,6 +368,7 @@ module Protocol
 				if stream = @streams[frame.stream_id]
 					stream.receive_priority(frame)
 				else
+					# Stream doesn't exist yet.
 					stream = accept_stream(frame.stream_id)
 					stream.receive_priority(frame)
 				end

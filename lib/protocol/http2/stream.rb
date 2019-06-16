@@ -378,8 +378,9 @@ module Protocol
 				end
 			end
 			
+			# @return [String] the data that was received.
 			def process_data(frame)
-				# Not implemented.
+				frame.unpack
 			end
 			
 			# DATA frames are subject to flow control and can only be sent when a stream is in the "open" or "half-closed (remote)" state.  The entire DATA frame payload is included in flow control, including the Pad Length and Padding fields if present.  If a DATA frame is received whose stream is not in "open" or "half-closed (local)" state, the recipient MUST respond with a stream error of type STREAM_CLOSED.

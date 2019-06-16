@@ -159,6 +159,9 @@ module Protocol
 				@buffer = nil
 			end
 			
+			# The connection this stream belongs to.
+			attr :connection
+			
 			# Stream ID (odd for client initiated streams, even otherwise).
 			attr :id
 
@@ -189,7 +192,11 @@ module Protocol
 					raise ProtocolError, "Stream priority for stream id #{@id} cannot depend on itself!"
 				end
 				
-				self.parent = @connection.streams[parent_id]
+				if parent_id.zero?
+					self.parent = @connection
+				else
+					self.parent = @connection.streams[parent_id]
+				end
 				
 				if priority.exclusive
 					siblings.each do |child|

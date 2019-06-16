@@ -78,6 +78,10 @@ module Protocol
 			def apply(connection)
 				connection.receive_headers(self)
 			end
+			
+			def inspect
+				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} #{@length}b>"
+			end
 		end
 	end
 end

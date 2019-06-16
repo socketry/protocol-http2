@@ -52,6 +52,8 @@ module Protocol
 		CONNECTION_PREFACE_MAGIC = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".freeze
 		
 		class Framer
+			DEBUG = !!ENV['FRAMER_DEBUG']
+			
 			def initialize(stream, frames = FRAMES)
 				@stream = stream
 				@frames = frames
@@ -79,6 +81,8 @@ module Protocol
 				return string
 			end
 			
+			# @return [Frame] the frame that has been read from the underlying IO.
+			# @raise if the underlying IO fails for some reason.
 			def read_frame(maximum_frame_size = MAXIMUM_ALLOWED_FRAME_SIZE)
 				# Read the header:
 				length, type, flags, stream_id = read_header
@@ -86,18 +90,18 @@ module Protocol
 				
 				# Allocate the frame:
 				klass = @frames[type] || Frame
-				# puts "read_frame #{klass} id=#{stream_id} length=#{length} flags=#{flags}"
-				
 				frame = klass.new(stream_id, flags, type, length)
 				
 				# Read the payload:
 				frame.read(@stream, maximum_frame_size)
 				
+				DEBUG and puts "read_frame: #{frame.inspect}"
+				
 				return frame
 			end
 			
 			def write_frame(frame)
-				# puts "framer: write_frame #{frame.inspect}"
+				DEBUG and puts "write_frame: #{frame.inspect}"
 				frame.write(@stream)
 				
 				@stream.flush

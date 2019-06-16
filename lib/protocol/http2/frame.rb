@@ -200,6 +200,10 @@ module Protocol
 			def apply(connection)
 				connection.receive_frame(self)
 			end
+			
+			def inspect
+				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} #{self.unpack}>"
+			end
 		end
 	end
 end

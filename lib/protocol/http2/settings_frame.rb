@@ -231,11 +231,15 @@ module Protocol
 			end
 			
 			def unpack
-				super.scan(/....../).map{|s| s.unpack(FORMAT)}
+				if buffer = super
+					buffer.scan(/....../).map{|s| s.unpack(FORMAT)}
+				else
+					[]
+				end
 			end
 			
 			def pack(settings = [])
-				super settings.map{|s| s.pack(FORMAT)}.join
+				super(settings.map{|s| s.pack(FORMAT)}.join)
 			end
 			
 			def apply(connection)

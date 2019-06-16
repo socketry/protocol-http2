@@ -82,12 +82,14 @@ module Protocol
 				
 				# Create new stream:
 				connection.streams[id] = stream
+				stream.parent.add_child(stream)
 				
 				return stream
 			end
 			
 			def self.replace(stream)
 				connection = stream.connection
+				stream.parent.remove_child(stream)
 				
 				stream = self.new(
 					connection, stream.id, stream.local_window, stream.remote_window,
@@ -96,6 +98,7 @@ module Protocol
 				
 				# Replace existing stream:
 				connection.streams[stream.id] = stream
+				stream.parent.add_child(stream)
 				
 				return stream
 			end

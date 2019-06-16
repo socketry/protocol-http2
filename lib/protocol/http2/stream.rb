@@ -102,9 +102,11 @@ module Protocol
 					@chunks.clear
 				end
 				
+				# @param size [Integer] the maximum amount of data we can send:
 				def window_updated(size)
 					maximum_size = [size, @stream.available_frame_size].min
 					
+					# In theory we could send off multiple frames, but we try to be fair to other streams by only sending off one stream. In theory, if the maximum frame size for this stream is big, a lot of data can be sent in one frame.
 					if self.any?
 						self.send_data(self.pop, maximum_size)
 					else
@@ -129,9 +131,7 @@ module Protocol
 				end
 				
 				def end_stream
-					unless @stream.closed?
-						@stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
-					end
+					@stream.send_data(nil, ::Protocol::HTTP2::END_STREAM)
 				end
 			end
 			

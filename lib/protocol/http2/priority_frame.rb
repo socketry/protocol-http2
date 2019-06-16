@@ -22,6 +22,8 @@ require_relative 'frame'
 
 module Protocol
 	module HTTP2
+		VALID_WEIGHT = (1..256)
+		
 		# Stream Dependency:  A 31-bit stream identifier for the stream that
 		# this stream depends on (see Section 5.3).  This field is only
 		# present if the PRIORITY flag is set.
@@ -37,7 +39,8 @@ module Protocol
 			def self.unpack(data)
 				stream_dependency, weight = data.unpack(FORMAT)
 				
-				return self.new(stream_dependency & EXCLUSIVE != 0, stream_dependency & ~EXCLUSIVE, weight)
+				# Weight:  An unsigned 8-bit integer representing a priority weight for the stream (see Section 5.3).  Add one to the value to obtain a weight between 1 and 256.  This field is only present if the PRIORITY flag is set.
+				return self.new(stream_dependency & EXCLUSIVE != 0, stream_dependency & ~EXCLUSIVE, weight + 1)
 			end
 			
 			def pack
@@ -45,7 +48,15 @@ module Protocol
 					stream_dependency = self.stream_dependency | EXCLUSIVE
 				end
 				
-				return [stream_dependency, self.weight].pack(FORMAT)
+				return [stream_dependency, self.weight - 1].pack(FORMAT)
+			end
+			
+			def weight= value
+				if VALID_WEIGHT.include?(value)
+					super
+				else
+					raise ArgumentError, "Weight #{value} must be between 1-256!"
+				end
 			end
 		end
 		

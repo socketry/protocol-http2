@@ -108,7 +108,7 @@ module Protocol
 				
 				# Allow the current flow-controlled instance to use up the window:
 				unless self.window_updated(size)
-					children = self.children.sort_by(&:weight)
+					children = self.children.values.sort_by(&:weight)
 					
 					# This must always be at least >= `children.count`, since stream weight can't be 0.
 					total = children.sum(&:weight)

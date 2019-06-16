@@ -126,7 +126,7 @@ module Protocol
 			end
 			
 			# Cache of dependent children.
-			attr :children
+			attr_accessor :children
 			
 			# The connection this stream belongs to.
 			attr :connection
@@ -135,13 +135,13 @@ module Protocol
 			attr :id
 
 			# Stream state, e.g. `idle`, `closed`.
-			attr :state
+			attr_accessor :state
 			
 			# The stream id that this stream depends on, according to the priority.
-			attr :dependent_id
+			attr_accessor :dependent_id
 			
 			# The weight of the stream relative to other siblings.
-			attr :weight
+			attr_accessor :weight
 			
 			attr :local_window
 			attr :remote_window
@@ -167,22 +167,16 @@ module Protocol
 				stream.dependent_id = @id
 			end
 			
-			def parent= parent
-				# Because this is an expensive operation, we avoid doing it if it's not needed:
-				if parent.id != @dependent_id
-					# Disconnect from current parent:
-					self.parent.remove_child(self)
-					
-					# Add to specified parent:
-					parent.add_child(self)
-					
-					# Update the stream dependency:
-					@dependent_id = parent.id
-				end
+			def parent(id = @dependent_id)
+				@connection[id] || @connection.accept_stream(id)
 			end
 			
-			def parent
-				@connection[@dependent_id]
+			def parent= stream
+				self.parent&.remove_child(self)
+				
+				@dependent_id = stream.id
+				
+				stream.add_child(self)
 			end
 			
 			def priority= priority
@@ -193,9 +187,15 @@ module Protocol
 				end
 				
 				if priority.exclusive
-					self.parent.exclusive_child(self)
-				else
-					self.parent = @connection[dependent_id]
+					self.parent&.remove_child(self)
+					
+					self.parent(dependent_id).exclusive_child(self)
+				elsif dependent_id != @dependent_id
+					self.parent&.remove_child(self)
+					
+					@dependent_id = dependent_id
+					
+					self.parent.add_child(self)
 				end
 			end
 			

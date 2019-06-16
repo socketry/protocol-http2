@@ -143,12 +143,12 @@ module Protocol
 				stream.children = @children
 				
 				@children.each do |child|
-					child.stream_dependency = stream.id
+					child.dependent_id = stream.id
 				end
 				
 				@children = {stream.id => stream}
 				
-				stream.stream_dependency = 0
+				stream.dependent_id = 0
 			end
 			
 			# 6.8. GOAWAY

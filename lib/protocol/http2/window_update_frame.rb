@@ -49,6 +49,7 @@ module Protocol
 			def capacity= value
 				difference = value - @capacity
 				@available += difference
+				@capacity = value
 			end
 			
 			def consume(amount)

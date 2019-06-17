@@ -64,6 +64,7 @@ module Protocol
 			end
 			
 			def expand(amount)
+				# puts "expand(#{amount}) @available=#{@available}"
 				@available += amount
 				@used -= amount
 				

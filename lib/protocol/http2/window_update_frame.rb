@@ -97,7 +97,7 @@ module Protocol
 			end
 			
 			def unpack
-				super.unpack(FORMAT).first
+				super.unpack1(FORMAT)
 			end
 			
 			def apply(connection)

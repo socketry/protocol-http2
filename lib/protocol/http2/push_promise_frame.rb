@@ -45,7 +45,7 @@ module Protocol
 			def unpack
 				data = super
 				
-				stream_id = data.unpack(FORMAT).first
+				stream_id = data.unpack1(FORMAT)
 				
 				return stream_id, data.byteslice(4, data.bytesize - 4)
 			end

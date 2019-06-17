@@ -48,7 +48,7 @@ module Protocol
 			FORMAT = "N".freeze
 			
 			def unpack
-				@payload.unpack(FORMAT).first
+				@payload.unpack1(FORMAT)
 			end
 			
 			def pack(error_code = NO_ERROR)

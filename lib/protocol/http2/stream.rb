@@ -161,7 +161,7 @@ module Protocol
 			def exclusive_child(stream)
 				stream.children = @children
 				
-				@children.each do |child|
+				@children.each_value do |child|
 					child.dependent_id = stream.id
 				end
 				
@@ -182,12 +182,14 @@ module Protocol
 				stream.add_child(self)
 			end
 			
-			def priority= priority
+			def update_priority priority
 				dependent_id = priority.stream_dependency
 				
 				if dependent_id == @id
 					raise ProtocolError, "Stream priority for stream id #{@id} cannot depend on itself!"
 				end
+				
+				@weight = priority.weight
 				
 				if priority.exclusive
 					self.parent&.remove_child(self)
@@ -333,7 +335,7 @@ module Protocol
 				priority, data = frame.unpack
 				
 				if priority
-					self.priority = priority
+					self.update_priority(priority)
 				end
 				
 				@connection.decode_headers(data)
@@ -397,8 +399,23 @@ module Protocol
 				end
 			end
 			
+			# Change the priority of the stream both locally and remotely.
+			def priority= priority
+				send_priority(priority)
+				update_priority(priority)
+			end
+			
+			# The current local priority of the stream.
+			def priority(exclusive = false)
+				Priority.new(exclusive, @dependent_id, @weight)
+			end
+			
+			def send_priority(priority)
+				@connection.send_priority(@id, priority)
+			end
+			
 			def receive_priority(frame)
-				self.priority = frame.unpack
+				self.update_priority(frame.unpack)
 			end
 			
 			def receive_reset_stream(frame)

@@ -27,7 +27,7 @@ module Protocol
 		# Stream Dependency:  A 31-bit stream identifier for the stream that
 		# this stream depends on (see Section 5.3).  This field is only
 		# present if the PRIORITY flag is set.
-		Priority = Struct.new(:exclusive, :stream_dependency, :weight) do
+		class Priority < Struct.new(:exclusive, :stream_dependency, :weight)
 			FORMAT = "NC".freeze
 			EXCLUSIVE = 1 << 31
 			
@@ -46,6 +46,8 @@ module Protocol
 			def pack
 				if exclusive
 					stream_dependency = self.stream_dependency | EXCLUSIVE
+				else
+					stream_dependency = self.stream_dependency
 				end
 				
 				return [stream_dependency, self.weight - 1].pack(FORMAT)

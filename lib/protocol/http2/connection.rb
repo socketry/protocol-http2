@@ -142,7 +142,7 @@ module Protocol
 			def exclusive_child(stream)
 				stream.children = @children
 				
-				@children.each do |child|
+				@children.each_value do |child|
 					child.dependent_id = stream.id
 				end
 				
@@ -231,17 +231,6 @@ module Protocol
 				@framer.write_frame(frame)
 			end
 			
-			def send_ping(data)
-				if @state != :closed
-					frame = PingFrame.new
-					frame.pack data
-					
-					write_frame(frame)
-				else
-					raise ProtocolError, "Cannot send ping in state #{@state}"
-				end
-			end
-			
 			def update_local_settings(changes)
 				capacity = @local_settings.initial_window_size
 				
@@ -302,6 +291,17 @@ module Protocol
 					process_settings(frame)
 				else
 					raise ProtocolError, "Cannot receive settings in state #{@state}"
+				end
+			end
+			
+			def send_ping(data)
+				if @state != :closed
+					frame = PingFrame.new
+					frame.pack data
+					
+					write_frame(frame)
+				else
+					raise ProtocolError, "Cannot send ping in state #{@state}"
 				end
 			end
 			
@@ -393,7 +393,14 @@ module Protocol
 				end
 			end
 			
-			# On the client and server side, sets the priority for an incoming stream.
+			def send_priority(stream_id, priority)
+				frame = PriorityFrame.new(stream_id)
+				frame.pack(priority)
+				
+				write_frame(frame)
+			end
+			
+			# Sets the priority for an incoming stream.
 			def receive_priority(frame)
 				if stream = @streams[frame.stream_id]
 					stream.receive_priority(frame)

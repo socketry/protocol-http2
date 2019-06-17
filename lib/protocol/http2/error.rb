@@ -89,7 +89,10 @@ module Protocol
 		class HeaderError < ProtocolError
 		end
 		
-		class StreamClosed < ProtocolError
+		class StreamError < ProtocolError
+		end
+		
+		class StreamClosed < StreamError
 			def initialize(message)
 				super message, STREAM_CLOSED
 			end

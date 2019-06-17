@@ -309,7 +309,7 @@ module Protocol
 				@state = :closed
 				
 				if error_code
-					error = EOFError.new("Stream reset: error_code=#{error_code}")
+					error = StreamError.new("Stream closed!", error_code)
 				end
 				
 				self.close(error)

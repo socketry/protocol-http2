@@ -86,6 +86,9 @@ module Protocol
 			attr :code
 		end
 		
+		class HeaderError < ProtocolError
+		end
+		
 		class StreamClosed < ProtocolError
 			def initialize(message)
 				super message, STREAM_CLOSED

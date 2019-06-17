@@ -100,6 +100,14 @@ module Protocol
 				super.unpack1(FORMAT)
 			end
 			
+			def read_payload(stream)
+				super
+				
+				if @length != 4
+					raise FrameSizeError, "Invalid frame length: #{@length} != 4!"
+				end
+			end
+			
 			def apply(connection)
 				connection.receive_window_update(self)
 			end

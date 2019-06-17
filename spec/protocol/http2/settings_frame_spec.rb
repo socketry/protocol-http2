@@ -22,7 +22,9 @@ require 'protocol/http2/settings_frame'
 require_relative 'frame_examples'
 
 RSpec.describe Protocol::HTTP2::SettingsFrame do
-	let(:settings) {[[1, 2], [3, 4], [5, 6]]}
+	let(:settings) {[
+		[3, 10], [5, 1048576], [4, 2147483647], [8, 1]
+	]}
 	
 	it_behaves_like Protocol::HTTP2::Frame do
 		before do
@@ -31,7 +33,7 @@ RSpec.describe Protocol::HTTP2::SettingsFrame do
 	end
 	
 	describe '#pack' do
-		it "packs priority" do
+		it "packs settings" do
 			subject.pack settings
 			
 			expect(subject.length).to be == 6*settings.count
@@ -39,7 +41,7 @@ RSpec.describe Protocol::HTTP2::SettingsFrame do
 	end
 	
 	describe '#unpack' do
-		it "unpacks priority" do
+		it "unpacks settings" do
 			subject.pack settings
 			
 			expect(subject.unpack).to be == settings

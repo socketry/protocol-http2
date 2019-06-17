@@ -232,7 +232,8 @@ module Protocol
 			
 			def unpack
 				if buffer = super
-					buffer.scan(/....../).map{|s| s.unpack(FORMAT)}
+					# TODO String#each_slice, or #each_unpack would be nice.
+					buffer.scan(/....../m).map{|s| s.unpack(FORMAT)}
 				else
 					[]
 				end

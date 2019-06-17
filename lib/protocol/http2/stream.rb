@@ -226,18 +226,6 @@ module Protocol
 				@state == :idle or @state == :reserved_local or @state == :open or @state == :half_closed_remote
 			end
 			
-			def send_failure(status, reason)
-				if send_headers?
-					send_headers(nil, [
-						[':status', status.to_s],
-					], END_STREAM)
-				else
-					send_reset_stream(PROTOCOL_ERROR)
-				end
-				
-				return nil
-			end
-			
 			private def write_headers(priority, headers, flags = 0)
 				data = @connection.encode_headers(headers)
 				

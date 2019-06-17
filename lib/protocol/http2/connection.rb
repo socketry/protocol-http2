@@ -182,7 +182,7 @@ module Protocol
 				send_goaway(error.code || PROTOCOL_ERROR, error.message)
 				
 				raise
-			rescue HPACK::CompressionError => error
+			rescue HPACK::Error => error
 				send_goaway(COMPRESSION_ERROR, error.message)
 				
 				raise

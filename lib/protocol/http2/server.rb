@@ -38,7 +38,7 @@ module Protocol
 					send_settings(settings)
 					
 					read_frame do |frame|
-						raise ProtocolError, "First frame must be SettingsFrame, but got #{frame.class}" unless frame.is_a? SettingsFrame
+						raise ProtocolError, "First frame must be #{SettingsFrame}, but got #{frame.class}" unless frame.is_a? SettingsFrame
 					end
 				else
 					raise ProtocolError, "Cannot send connection preface in state #{@state}"

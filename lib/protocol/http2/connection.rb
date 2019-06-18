@@ -110,9 +110,7 @@ module Protocol
 			end
 			
 			def encode_headers(headers, buffer = String.new.b)
-				HPACK::Compressor.new(buffer, @encoder).encode(headers)
-				
-				return buffer
+				HPACK::Compressor.new(buffer, @encoder, table_size_limit: @remote_settings.header_table_size).encode(headers)
 			end
 			
 			def decode_headers(data)
@@ -237,8 +235,6 @@ module Protocol
 				@streams.each_value do |stream|
 					stream.local_window.capacity = capacity
 				end
-				
-				@decoder.table_size = @local_settings.header_table_size
 			end
 			
 			def update_remote_settings(changes)
@@ -247,8 +243,6 @@ module Protocol
 				@streams.each_value do |stream|
 					stream.remote_window.capacity = capacity
 				end
-				
-				@encoder.table_size = @remote_settings.header_table_size
 			end
 			
 			# In addition to changing the flow-control window for streams that are not yet active, a SETTINGS frame can alter the initial flow-control window size for streams with active flow-control windows (that is, streams in the "open" or "half-closed (remote)" state).  When the value of SETTINGS_INITIAL_WINDOW_SIZE changes, a receiver MUST adjust the size of all stream flow-control windows that it maintains by the difference between the new value and the old value.

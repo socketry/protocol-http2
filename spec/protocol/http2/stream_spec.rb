@@ -97,6 +97,16 @@ RSpec.describe Protocol::HTTP2::Stream do
 	context "idle stream" do
 		let(:stream) {client.create_stream}
 		
+		it "can send headers" do
+			stream.send_headers(nil, [["foo", "bar"]])
+			
+			server_stream = server.create_stream(stream.id)
+			
+			expect(server_stream).to receive(:receive_headers)
+			
+			server.read_frame
+		end
+		
 		it "cannot send data" do
 			expect do
 				stream.send_data("Hello World!")
@@ -125,6 +135,30 @@ RSpec.describe Protocol::HTTP2::Stream do
 			expect do
 				server.read_frame
 			end.to raise_error(Protocol::HTTP2::ProtocolError, /Cannot reset stream/)
+		end
+	end
+	
+	context "open stream" do
+		let(:stream) {client.create_stream.open!}
+		
+		it "can send data" do
+			stream.send_data("Hello World!")
+			
+			server_stream = server.create_stream(stream.id)
+			
+			expect(server_stream).to receive(:receive_data)
+			
+			server.read_frame
+		end
+		
+		it "can send reset stream" do
+			stream.send_reset_stream
+			
+			server_stream = server.create_stream(stream.id)
+			
+			expect(server_stream).to receive(:receive_reset_stream)
+			
+			server.read_frame
 		end
 	end
 	

@@ -93,4 +93,72 @@ RSpec.describe Protocol::HTTP2::Stream do
 		expect(server[a.id].children).to be == {d.id => server[d.id]}
 		expect(server[d.id].children).to be == {b.id => server[b.id], c.id => server[c.id]}
 	end
+	
+	context "idle stream" do
+		let(:stream) {client.create_stream}
+		
+		it "cannot send data" do
+			expect do
+				stream.send_data("Hello World!")
+			end.to raise_error(Protocol::HTTP2::ProtocolError, /Cannot send data in state: idle/)
+		end
+		
+		it "cannot send reset stream" do
+			expect do
+				stream.send_reset_stream
+			end.to raise_error(Protocol::HTTP2::ProtocolError, /Cannot send reset stream/)
+		end
+		
+		it "cannot receive data" do
+			stream.open!
+			stream.send_data("Hello World!")
+			
+			expect do
+				server.read_frame
+			end.to raise_error(Protocol::HTTP2::ProtocolError, /Cannot receive data for idle stream/)
+		end
+		
+		it "cannot receive stream reset" do
+			stream.open!
+			stream.send_reset_stream
+			
+			expect do
+				server.read_frame
+			end.to raise_error(Protocol::HTTP2::ProtocolError, /Cannot reset stream/)
+		end
+	end
+	
+	context "closed stream" do
+		let(:stream) {client.create_stream.close!}
+		
+		it "cannot send reset stream" do
+			expect do
+				stream.send_reset_stream
+			end.to raise_error(Protocol::HTTP2::ProtocolError, /Cannot send reset stream/)
+		end
+		
+		it "ignores headers" do
+			expect(stream).to receive(:ignore_headers)
+			
+			stream.receive_headers(double)
+		end
+		
+		it "ignores data" do
+			expect(stream).to receive(:ignore_data)
+			
+			stream.receive_data(double)
+		end
+		
+		it "ignores reset stream" do
+			expect(stream).to receive(:ignore_reset_stream)
+			
+			stream.receive_reset_stream(double)
+		end
+		
+		it "doesn't ignore priority" do
+			expect(stream).to receive(:process_priority)
+			
+			stream.receive_priority(double(unpack: nil))
+		end
+	end
 end

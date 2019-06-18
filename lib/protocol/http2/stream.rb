@@ -182,7 +182,7 @@ module Protocol
 				stream.add_child(self)
 			end
 			
-			def update_priority priority
+			def process_priority priority
 				dependent_id = priority.stream_dependency
 				
 				if dependent_id == @id
@@ -250,7 +250,7 @@ module Protocol
 					if frame.end_stream?
 						@state = :half_closed_local
 					else
-						@state = :open
+						open!
 					end
 				elsif @state == :reserved_local
 					frame = write_headers(*args)
@@ -308,6 +308,12 @@ module Protocol
 				end
 			end
 			
+			def open!
+				@state = :open
+				
+				return self
+			end
+			
 			# Transition the stream into the closed state.
 			# @param error_code [Integer] the error code if the stream was closed due to a stream reset.
 			def close!(error_code = nil)
@@ -318,6 +324,8 @@ module Protocol
 				end
 				
 				self.close(error)
+				
+				return self
 			end
 			
 			def send_reset_stream(error_code = 0)
@@ -333,15 +341,19 @@ module Protocol
 				end
 			end
 			
-			private def process_headers(frame)
+			protected def process_headers(frame)
 				# Receiving request headers:
 				priority, data = frame.unpack
 				
 				if priority
-					self.update_priority(priority)
+					self.process_priority(priority)
 				end
 				
 				@connection.decode_headers(data)
+			end
+			
+			protected def ignore_headers(frame)
+				# Async.logger.warn(self) {"Received headers in state: #{@state}!"}
 			end
 			
 			def receive_headers(frame)
@@ -349,7 +361,7 @@ module Protocol
 					if frame.end_stream?
 						@state = :half_closed_remote
 					else
-						@state = :open
+						open!
 					end
 					
 					return process_headers(frame)
@@ -369,8 +381,9 @@ module Protocol
 					end
 					
 					return process_headers(frame)
+				elsif self.closed?
+					ignore_headers(frame)
 				else
-					Async.logger.warn(self) {"Received headers in state: #{@state}!"}
 					self.send_reset_stream(Error::STREAM_CLOSED)
 				end
 			end
@@ -378,6 +391,10 @@ module Protocol
 			# @return [String] the data that was received.
 			def process_data(frame)
 				frame.unpack
+			end
+			
+			def ignore_data(frame)
+				# Async.logger.warn(self) {"Received headers in state: #{@state}!"}
 			end
 			
 			# DATA frames are subject to flow control and can only be sent when a stream is in the "open" or "half-closed (remote)" state.  The entire DATA frame payload is included in flow control, including the Pad Length and Padding fields if present.  If a DATA frame is received whose stream is not in "open" or "half-closed (local)" state, the recipient MUST respond with a stream error of type STREAM_CLOSED.
@@ -398,9 +415,10 @@ module Protocol
 					if frame.end_stream?
 						close!
 					end
+				elsif self.closed?
+					ignore_data(frame)
 				else
 					# If a DATA frame is received whose stream is not in "open" or "half-closed (local)" state, the recipient MUST respond with a stream error (Section 5.4.2) of type STREAM_CLOSED.
-					Async.logger.warn(self) {"Received data in state: #{@state}!"}
 					self.send_reset_stream(Error::STREAM_CLOSED)
 				end
 			end
@@ -408,7 +426,7 @@ module Protocol
 			# Change the priority of the stream both locally and remotely.
 			def priority= priority
 				send_priority(priority)
-				update_priority(priority)
+				process_priority(priority)
 			end
 			
 			# The current local priority of the stream.
@@ -421,23 +439,25 @@ module Protocol
 			end
 			
 			def receive_priority(frame)
-				self.update_priority(frame.unpack)
+				self.process_priority(frame.unpack)
+			end
+			
+			def ignore_reset_stream(frame)
+				# Async.logger.warn(self) {"Received reset stream (#{error_code}) in state: #{@state}!"}
 			end
 			
 			def receive_reset_stream(frame)
-				error_code = frame.unpack
-				
-				if @state != :idle
-					if self.closed?
-						Async.logger.warn(self) {"Received reset stream (#{error_code}) in state: #{@state}!"}
-					else
-						close!(error_code)
-					end
+				if @state == :idle
+					# If a RST_STREAM frame identifying an idle stream is received, the recipient MUST treat this as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
+					raise ProtocolError, "Cannot receive reset stream in state: #{@state}!"
+				elsif self.closed?
+					ignore_reset_stream(frame)
+				else
+					error_code = frame.unpack
+					
+					close!(error_code)
 					
 					return error_code
-				else
-					# If a RST_STREAM frame identifying an idle stream is received, the recipient MUST treat this as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
-					raise ProtocolError, "Cannot receive reset stream (#{error_code}) in state: #{@state}!"
 				end
 			end
 			

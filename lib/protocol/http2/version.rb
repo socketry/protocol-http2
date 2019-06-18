@@ -20,6 +20,6 @@
 
 module Protocol
 	module HTTP2
-		VERSION = "0.7.3"
+		VERSION = "0.7.4"
 	end
 end

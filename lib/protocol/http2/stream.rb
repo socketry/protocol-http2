@@ -329,7 +329,7 @@ module Protocol
 					
 					close!
 				else
-					raise ProtocolError, "Cannot reset stream in state: #{@state}"
+					raise ProtocolError, "Cannot send reset stream (#{error_code}) in state: #{@state}"
 				end
 			end
 			
@@ -370,7 +370,8 @@ module Protocol
 					
 					return process_headers(frame)
 				else
-					raise ProtocolError, "Cannot receive headers in state: #{@state}"
+					Async.logger.warn(self) {"Received headers in state: #{@state}!"}
+					self.send_reset_stream(Error::STREAM_CLOSED)
 				end
 			end
 			
@@ -398,7 +399,9 @@ module Protocol
 						close!
 					end
 				else
-					raise ProtocolError, "Cannot receive data in state: #{@state}"
+					# If a DATA frame is received whose stream is not in "open" or "half-closed (local)" state, the recipient MUST respond with a stream error (Section 5.4.2) of type STREAM_CLOSED.
+					Async.logger.warn(self) {"Received data in state: #{@state}!"}
+					self.send_reset_stream(Error::STREAM_CLOSED)
 				end
 			end
 			
@@ -422,14 +425,19 @@ module Protocol
 			end
 			
 			def receive_reset_stream(frame)
-				if @state != :idle and @state != :closed
-					error_code = frame.unpack
-					
-					close!(error_code)
+				error_code = frame.unpack
+				
+				if @state != :idle
+					if self.closed?
+						Async.logger.warn(self) {"Received reset stream (#{error_code}) in state: #{@state}!"}
+					else
+						close!(error_code)
+					end
 					
 					return error_code
 				else
-					raise ProtocolError, "Cannot reset stream in state: #{@state}"
+					# If a RST_STREAM frame identifying an idle stream is received, the recipient MUST treat this as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
+					raise ProtocolError, "Cannot receive reset stream (#{error_code}) in state: #{@state}!"
 				end
 			end
 			

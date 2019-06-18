@@ -229,12 +229,15 @@ module Protocol
 			end
 			
 			private def write_headers(priority, headers, flags = 0)
-				data = @connection.encode_headers(headers)
-				
 				frame = HeadersFrame.new(@id, flags)
-				frame.pack(priority, data, maximum_size: @connection.maximum_frame_size)
 				
-				write_frame(frame)
+				@connection.write_frames do |framer|
+					data = @connection.encode_headers(headers)
+					
+					frame.pack(priority, data, maximum_size: @connection.maximum_frame_size)
+					
+					framer.write_frame(frame)
+				end
 				
 				return frame
 			end
@@ -434,12 +437,15 @@ module Protocol
 			# A push promise is server request -> client -> server response -> client.
 			# The server generates the same set of headers as if the client was sending a request, and sends these to the client. The client can reject the request by resetting the (new) stream. Otherwise, the server will start sending a response as if the client had send the request.
 			private def write_push_promise(stream_id, headers, flags = 0, **options)
-				data = @connection.encode_headers(headers)
-				
 				frame = PushPromiseFrame.new(@id, flags)
-				frame.pack(stream_id, data, maximum_size: @connection.maximum_frame_size)
 				
-				write_frame(frame)
+				@connection.write_frames do |framer|
+					data = @connection.encode_headers(headers)
+					
+					frame.pack(stream_id, data, maximum_size: @connection.maximum_frame_size)
+					
+					framer.write_frame(frame)
+				end
 				
 				return frame
 			end

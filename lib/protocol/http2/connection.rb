@@ -225,8 +225,11 @@ module Protocol
 			end
 			
 			def write_frame(frame)
-				# puts "#{self.class} #{@state} write_frame: class=#{frame.class} flags=#{frame.flags} length=#{frame.length}"
 				@framer.write_frame(frame)
+			end
+			
+			def write_frames
+				yield @framer
 			end
 			
 			def update_local_settings(changes)

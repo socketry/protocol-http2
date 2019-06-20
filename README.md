@@ -2,7 +2,7 @@
 
 Provides a low-level implementation of the HTTP/2 protocol.
 
-[![Build Status](https://secure.travis-ci.com/socketry/protocol-http2.svg)](http://travis-ci.com/socketry/protocol-http2)
+[![Build Status](https://travis-ci.com/socketry/protocol-http2.svg?branch=master)](https://travis-ci.com/socketry/protocol-http2?branch=master)
 
 ## Installation
 

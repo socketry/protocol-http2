@@ -54,11 +54,18 @@ module Protocol
 				end
 			end
 			
+			def update_local_window(frame)
+				consume_local_window(frame)
+				
+				request_window_update
+			end
+			
 			def consume_local_window(frame)
 				amount = frame.length
-				
 				@local_window.consume(amount)
-				
+			end
+			
+			def request_window_update
 				if @local_window.limited?
 					self.send_window_update(@local_window.used)
 				end

@@ -400,7 +400,7 @@ module Protocol
 			# DATA frames are subject to flow control and can only be sent when a stream is in the "open" or "half-closed (remote)" state.  The entire DATA frame payload is included in flow control, including the Pad Length and Padding fields if present.  If a DATA frame is received whose stream is not in "open" or "half-closed (local)" state, the recipient MUST respond with a stream error of type STREAM_CLOSED.
 			def receive_data(frame)
 				if @state == :open
-					consume_local_window(frame)
+					update_local_window(frame)
 					
 					if frame.end_stream?
 						@state = :half_closed_remote
@@ -408,7 +408,7 @@ module Protocol
 					
 					process_data(frame)
 				elsif @state == :half_closed_local
-					consume_local_window(frame)
+					update_local_window(frame)
 					
 					process_data(frame)
 					

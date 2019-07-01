@@ -56,7 +56,6 @@ module Protocol
 			
 			def update_local_window(frame)
 				consume_local_window(frame)
-				
 				request_window_update
 			end
 			

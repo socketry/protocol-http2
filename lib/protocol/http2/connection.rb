@@ -319,7 +319,7 @@ module Protocol
 			end
 			
 			def receive_data(frame)
-				consume_local_window(frame)
+				update_local_window(frame)
 				
 				if stream = @streams[frame.stream_id]
 					stream.receive_data(frame)

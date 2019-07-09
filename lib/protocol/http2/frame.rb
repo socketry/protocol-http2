@@ -20,6 +20,7 @@
 # THE SOFTWARE.
 
 require_relative 'error'
+require_relative 'monkey_patch'
 
 module Protocol
 	module HTTP2

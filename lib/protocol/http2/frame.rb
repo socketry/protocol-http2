@@ -20,7 +20,9 @@
 # THE SOFTWARE.
 
 require_relative 'error'
-require_relative 'monkey_patch'
+
+# This only exists to support Ruby 2.3:
+require_relative 'extensions/unpack'
 
 module Protocol
 	module HTTP2

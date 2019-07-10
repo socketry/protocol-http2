@@ -19,6 +19,7 @@
 # THE SOFTWARE.
 
 require_relative 'window_update_frame'
+require_relative 'extensions/sum'
 
 module Protocol
 	module HTTP2

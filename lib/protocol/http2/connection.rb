@@ -379,7 +379,7 @@ module Protocol
 						raise ProtocolError, "Invalid stream id: #{stream_id} <= #{@remote_stream_id}!"
 					end
 					
-					if self.active_streams.count < self.maximum_concurrent_streams
+					if self.active_streams.size < self.maximum_concurrent_streams
 						stream = accept_stream(stream_id)
 						@remote_stream_id = stream_id
 						

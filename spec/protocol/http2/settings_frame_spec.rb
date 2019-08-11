@@ -36,7 +36,7 @@ RSpec.describe Protocol::HTTP2::SettingsFrame do
 		it "packs settings" do
 			subject.pack settings
 			
-			expect(subject.length).to be == 6*settings.count
+			expect(subject.length).to be == 6*settings.size
 		end
 	end
 	

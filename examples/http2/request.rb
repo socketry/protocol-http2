@@ -48,7 +48,7 @@ Async.run do
 	def stream.receive_data(frame)
 		data = super
 		
-		$count += data.scan(/kittens/).count
+		$count += data.scan(/kittens/).size
 		
 		puts "Got response data: #{data.bytesize}"
 	end

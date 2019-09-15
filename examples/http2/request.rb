@@ -7,7 +7,7 @@ require 'async/http/endpoint'
 require 'protocol/http2/client'
 require 'pry'
 
-Async.run do
+Async do
 	endpoint = Async::HTTP::Endpoint.parse("https://www.google.com/search?q=kittens")
 	
 	peer = endpoint.connect

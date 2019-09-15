@@ -9,7 +9,7 @@ require 'pry'
 
 queries = ["apple", "orange", "teapot", "async"]
 
-Async.run do
+Async do
 	endpoint = Async::HTTP::Endpoint.parse("https://www.google.com")
 	
 	peer = endpoint.connect

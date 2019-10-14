@@ -50,8 +50,8 @@ module Protocol
 				return stream_id, data.byteslice(4, data.bytesize - 4)
 			end
 			
-			def pack(stream_id, data, *args)
-				super([stream_id].pack(FORMAT) + data, *args)
+			def pack(stream_id, data, *arguments, **options)
+				super([stream_id].pack(FORMAT) + data, *arguments, **options)
 			end
 			
 			def apply(connection)

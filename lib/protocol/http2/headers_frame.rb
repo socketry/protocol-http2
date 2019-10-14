@@ -63,7 +63,7 @@ module Protocol
 				return priority, data
 			end
 			
-			def pack(priority, data, *args)
+			def pack(priority, data, *arguments, **options)
 				buffer = String.new.b
 				
 				if priority
@@ -72,7 +72,7 @@ module Protocol
 				
 				buffer << data
 				
-				super(buffer, *args)
+				super(buffer, *arguments, **options)
 			end
 			
 			def apply(connection)

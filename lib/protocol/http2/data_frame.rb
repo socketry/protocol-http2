@@ -45,7 +45,7 @@ module Protocol
 				flag_set?(END_STREAM)
 			end
 			
-			def pack(data, *)
+			def pack(data, *arguments, **options)
 				if data
 					super
 				else

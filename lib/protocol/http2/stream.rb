@@ -290,15 +290,15 @@ module Protocol
 				return frame
 			end
 			
-			def send_data(*args)
+			def send_data(*arguments, **options)
 				if @state == :open
-					frame = write_data(*args)
+					frame = write_data(*arguments, **options)
 					
 					if frame.end_stream?
 						@state = :half_closed_local
 					end
 				elsif @state == :half_closed_remote
-					frame = write_data(*args)
+					frame = write_data(*arguments, **options)
 					
 					if frame.end_stream?
 						close!

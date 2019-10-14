@@ -201,6 +201,13 @@ module Protocol
 			def send_settings(changes)
 				@local_settings.append(changes)
 				
+				# If the initial window size is set to something bigger than the default, we want to increase it.
+				difference = @local_settings.pending.initial_window_size - @local_window.capacity
+				
+				if difference > 0
+					send_window_update(difference)
+				end
+				
 				frame = SettingsFrame.new
 				frame.pack(changes)
 				

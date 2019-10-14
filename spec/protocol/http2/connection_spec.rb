@@ -96,11 +96,10 @@ RSpec.describe Protocol::HTTP2::Connection do
 			stream.send_data(request_data, Protocol::HTTP2::END_STREAM)
 			expect(stream.state).to eq :half_closed_local
 			
-			expect(server).to receive(:receive_data) do |frame|
-				expect(frame.unpack).to be == request_data
-			end.and_call_original
+			expect(server).to receive(:receive_data).and_call_original
 			
 			data_frame = server.read_frame
+			expect(data_frame.unpack).to be == request_data
 			expect(server.streams[1].state).to be :half_closed_remote
 			
 			server.streams[1].send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)

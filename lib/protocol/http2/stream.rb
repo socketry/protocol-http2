@@ -329,6 +329,7 @@ module Protocol
 				@state = :closed
 				
 				@connection.deactivate(self)
+				self.parent&.remove_child(self)
 				
 				if error_code
 					error = StreamError.new("Stream closed!", error_code)

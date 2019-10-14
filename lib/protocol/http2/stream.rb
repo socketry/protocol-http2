@@ -120,6 +120,10 @@ module Protocol
 				
 				@state = state
 				
+				if active?
+					connnection.active(self)
+				end
+				
 				# Stream priority:
 				@dependent_id = dependent_id
 				@weight = weight
@@ -309,7 +313,12 @@ module Protocol
 			end
 			
 			def open!
-				@state = :open
+				if @state == :idle
+					@state = :open
+					@connection.activate(self)
+				else
+					raise ProtocolError, "Cannot open stream in state: #{@state}"
+				end
 				
 				return self
 			end
@@ -318,6 +327,8 @@ module Protocol
 			# @param error_code [Integer] the error code if the stream was closed due to a stream reset.
 			def close!(error_code = nil)
 				@state = :closed
+				
+				@connection.deactivate(self)
 				
 				if error_code
 					error = StreamError.new("Stream closed!", error_code)
@@ -481,6 +492,7 @@ module Protocol
 			def reserved_local!
 				if @state == :idle
 					@state = :reserved_local
+					@connection.activate(self)
 				else
 					raise ProtocolError, "Cannot reserve stream in state: #{@state}"
 				end
@@ -489,6 +501,7 @@ module Protocol
 			def reserved_remote!
 				if @state == :idle
 					@state = :reserved_remote
+					@connection.activate(self)
 				else
 					raise ProtocolError, "Cannot reserve stream in state: #{@state}"
 				end

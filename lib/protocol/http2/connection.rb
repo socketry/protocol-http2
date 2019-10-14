@@ -35,6 +35,8 @@ module Protocol
 				@streams = {}
 				@children = {}
 				
+				@active = 0
+				
 				@framer = framer
 				@local_stream_id = local_stream_id
 				@remote_stream_id = 0
@@ -97,9 +99,19 @@ module Protocol
 				@state == :closed
 			end
 			
+			# The stream has become active (i.e. not idle or closed).
+			def activate(stream)
+				@active += 1
+			end
+			
+			# The stream is no longer active (i.e. has become closed).
+			def deactivate(stream)
+				@active -= 1
+			end
+			
+			# The number of active streams.
 			def active_streams
-				# TODO inefficient
-				@streams.each_value.select(&:active?)
+				@active
 			end
 			
 			# Close the underlying framer and all streams.

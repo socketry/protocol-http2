@@ -103,6 +103,7 @@ module Protocol
 			end
 			
 			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
+			# @todo This function can get slow when there are a lot of children [INEFFICIENT].
 			# @param amount [Integer] the amount of data to write. Defaults to the current window capacity.
 			def consume_window(size = self.available_size)
 				# Don't consume more than the available window size:

@@ -103,8 +103,9 @@ module Protocol
 				# Async.logger.debug(self, name: "write") {frame.inspect}
 				
 				frame.write(@stream)
-				
-				@stream.flush
+
+				# Don't call @stream.flush here because it can cause significant contention if there is a semaphore around this method.
+				# @stream.flush
 				
 				return frame
 			end

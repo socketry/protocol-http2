@@ -343,7 +343,7 @@ module Protocol
 				if stream = @streams[frame.stream_id]
 					stream.receive_data(frame)
 				else
-					raise ProtocolError, "Cannot receive data for idle stream #{frame.stream_id}"
+					raise ProtocolError, "Cannot receive data for stream id #{frame.stream_id}"
 				end
 			end
 			

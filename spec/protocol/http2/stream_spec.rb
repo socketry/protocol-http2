@@ -125,7 +125,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 			
 			expect do
 				server.read_frame
-			end.to raise_error(Protocol::HTTP2::ProtocolError, /Cannot receive data for idle stream/)
+			end.to raise_error(Protocol::HTTP2::ProtocolError, /Cannot receive data/)
 		end
 		
 		it "cannot receive stream reset" do

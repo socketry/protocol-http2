@@ -161,7 +161,7 @@ module Protocol
 			end
 			
 			def read_header(stream)
-				if buffer = stream.read(9)
+				if buffer = stream.read(9) and buffer.bytesize == 9
 					@length, @type, @flags, @stream_id = Frame.parse_header(buffer)
 					# puts "read_header: #{@length} #{@type} #{@flags} #{@stream_id}"
 				else
@@ -170,7 +170,11 @@ module Protocol
 			end
 			
 			def read_payload(stream)
-				@payload = stream.read(@length)
+				if payload = stream.read(@length) and payload.bytesize == @length
+					@payload = payload
+				else
+					raise EOFError, "Could not read frame payload!"
+				end
 			end
 			
 			def read(stream, maximum_frame_size = MAXIMUM_ALLOWED_FRAME_SIZE)

@@ -29,12 +29,12 @@ RSpec.describe Protocol::HTTP2::FlowControl do
 
 			def initialize(weight)
 				@weight = weight
-				@children = {}
+				@children = []
 				@remote_window = Protocol::HTTP2::Window.new
 			end
 
 			def add_child(item)
-				@children[item.id] = item
+				@children << item
 			end
 
 			def id

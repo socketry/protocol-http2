@@ -19,7 +19,7 @@
 # THE SOFTWARE.
 
 require_relative 'framer'
-require_relative 'flow_control'
+require_relative 'dependency'
 
 require 'protocol/hpack'
 
@@ -32,10 +32,13 @@ module Protocol
 				super()
 				
 				@state = :new
-				@streams = {}
-				@children = {}
 				
-				@active = 0
+				# Hash(Integer, Stream)
+				@streams = {}
+				
+				# Hash(Integer, Dependency)
+				@dependency = Dependency.new(self, 0)
+				@dependencies = {0 => @dependency}
 				
 				@framer = framer
 				@local_stream_id = local_stream_id
@@ -57,6 +60,10 @@ module Protocol
 			
 			def parent
 				nil
+			end
+			
+			def children
+				@dependency.streams
 			end
 			
 			def [] id
@@ -99,24 +106,18 @@ module Protocol
 				@state == :closed
 			end
 			
-			# The stream has become active (i.e. not idle or closed).
-			def activate(stream)
-				@active += 1
-			end
-			
-			# The stream is no longer active (i.e. has become closed).
-			def deactivate(stream)
-				@active -= 1
-			end
-			
-			# The number of active streams.
-			def active_streams
-				@active
+			def delete(id)
+				@streams.delete(id)
+				
+				if dependency = @dependencies[id]
+					dependency.delete! if dependency.irrelevant?
+				end
 			end
 			
 			# Close the underlying framer and all streams.
 			def close(error = nil)
 				@framer.close
+				# @framer = nil
 				
 				@streams.each_value{|stream| stream.close(error)}
 			end
@@ -139,26 +140,19 @@ module Protocol
 			end
 			
 			attr :streams
-			attr :children
+			attr :dependencies
 			
-			def add_child(stream)
-				@children[stream.id] = stream
-			end
-			
-			def remove_child(stream)
-				@children.delete(stream.id)
-			end
-			
-			def exclusive_child(stream)
-				stream.children = @children
-				
-				@children.each_value do |child|
-					child.dependent_id = stream.id
+			# Fetch (or create) the flow control windows for the specified stream id.
+			# @param id [Integer] the stream id.
+			def dependency_for(id)
+				@dependencies.fetch(id) do
+					dependency = Dependency.new(self, id)
+					
+					# TODO this might be irrelevant, if initially processing priority frame.
+					@dependency.add_child(dependency)
+					
+					@dependencies[id] = dependency
 				end
-				
-				@children = {stream.id => stream}
-				
-				stream.dependent_id = 0
 			end
 			
 			# 6.8. GOAWAY
@@ -398,7 +392,7 @@ module Protocol
 						raise ProtocolError, "Invalid stream id: #{stream_id} <= #{@remote_stream_id}!"
 					end
 					
-					if self.active_streams.size < self.maximum_concurrent_streams
+					if @streams.size < self.maximum_concurrent_streams
 						stream = accept_stream(stream_id)
 						@remote_stream_id = stream_id
 						
@@ -418,13 +412,8 @@ module Protocol
 			
 			# Sets the priority for an incoming stream.
 			def receive_priority(frame)
-				if stream = @streams[frame.stream_id]
-					stream.receive_priority(frame)
-				else
-					# Stream doesn't exist yet.
-					stream = accept_stream(frame.stream_id)
-					stream.receive_priority(frame)
-				end
+				dependency = dependency_for(frame.stream_id)
+				dependency.receive_priority(frame)
 			end
 			
 			def receive_push_promise(frame)
@@ -450,7 +439,7 @@ module Protocol
 					rescue ProtocolError => error
 						stream.send_reset_stream(error.code)
 					end
-				else
+				elsif frame.stream_id > @remote_stream_id
 					# Receiving any frame other than HEADERS or PRIORITY on a stream in this state MUST be treated as a connection error of type PROTOCOL_ERROR.
 					raise ProtocolError, "Cannot update window of idle stream #{frame.stream_id}"
 				end

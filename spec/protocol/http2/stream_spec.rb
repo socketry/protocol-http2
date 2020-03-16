@@ -28,72 +28,6 @@ RSpec.describe Protocol::HTTP2::Stream do
 		server.open!
 	end
 	
-	it "can set the priority of a stream" do
-		stream = client.create_stream
-		
-		priority = stream.priority
-		expect(priority.weight).to be 16
-		
-		priority.weight = 32
-		
-		stream.priority = priority
-		
-		expect(server.read_frame).to be_a Protocol::HTTP2::PriorityFrame
-		
-		expect(server.streams[stream.id].weight).to be == 32
-	end
-	
-	it "can make an exclusive stream" do
-		a, b, c, d = 4.times.collect {client.create_stream}
-		
-		#    a
-		#   /
-		#  b
-		begin
-			priority = b.priority
-			priority.stream_dependency = a.id
-			b.priority = priority
-			
-			server.read_frame
-		end
-		
-		expect(a.children).to be == {b.id => b}
-		expect(server[a.id].children).to be == {b.id => server[b.id]}
-		
-		#    a
-		#   / \
-		#  b   c
-		begin
-			priority = c.priority
-			priority.stream_dependency = a.id
-			c.priority = priority
-			
-			server.read_frame
-		end
-		
-		expect(a.children).to be == {b.id => b, c.id => c}
-		expect(server[a.id].children).to be == {b.id => server[b.id], c.id => server[c.id]}
-		
-		#    a
-		#    |
-		#    d
-		#   / \
-		#  b   c
-		begin
-			priority = d.priority
-			priority.stream_dependency = a.id
-			priority.exclusive = true
-			d.priority = priority
-			
-			server.read_frame
-		end
-		
-		expect(a.children).to be == {d.id => d}
-		expect(d.children).to be == {b.id => b, c.id => c}
-		expect(server[a.id].children).to be == {d.id => server[d.id]}
-		expect(server[d.id].children).to be == {b.id => server[b.id], c.id => server[c.id]}
-	end
-	
 	context "idle stream" do
 		let(:stream) {client.create_stream}
 		
@@ -187,12 +121,6 @@ RSpec.describe Protocol::HTTP2::Stream do
 			expect(stream).to receive(:ignore_reset_stream)
 			
 			stream.receive_reset_stream(double)
-		end
-		
-		it "doesn't ignore priority" do
-			expect(stream).to receive(:process_priority)
-			
-			stream.receive_priority(double(unpack: nil))
 		end
 	end
 end

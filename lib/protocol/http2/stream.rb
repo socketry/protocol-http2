@@ -19,7 +19,7 @@
 # THE SOFTWARE.
 
 require_relative 'connection'
-require_relative 'flow_control'
+require_relative 'dependency'
 
 module Protocol
 	module HTTP2
@@ -74,142 +74,63 @@ module Protocol
 		class Stream
 			include FlowControl
 			
-			def self.create(connection, id = connection.next_stream_id)
-				local_window = Window.new(connection.local_settings.initial_window_size)
-				remote_window = Window.new(connection.remote_settings.initial_window_size)
+			def self.create(connection, id)
+				stream = self.new(connection, id)
 				
-				stream = self.new(connection, id, local_window, remote_window)
-				
-				# Create new stream:
 				connection.streams[id] = stream
-				stream.parent.add_child(stream)
 				
 				return stream
 			end
 			
-			def self.replace(stream)
-				connection = stream.connection
-				stream.parent.remove_child(stream)
-				
-				stream = self.new(
-					connection, stream.id, stream.local_window, stream.remote_window,
-					stream.state, stream.dependent_id, stream.weight, stream.children
-				)
-				
-				# Replace existing stream:
-				connection.streams[stream.id] = stream
-				stream.parent.add_child(stream)
-				
-				return stream
-			end
-			
-			def self.accept(connection, id)
-				if stream = connection.streams[id]
-					self.replace(stream)
-				else
-					self.create(connection, id)
-				end
-			end
-			
-			def initialize(connection, id, local_window, remote_window, state = :idle, dependent_id = 0, weight = 16, children = nil)
+			def initialize(connection, id, state = :idle)
 				@connection = connection
 				@id = id
 				
-				@local_window = local_window
-				@remote_window = remote_window
-				
 				@state = state
 				
-				if active?
-					connnection.active(self)
-				end
+				@local_window = Window.new(@connection.local_settings.initial_window_size)
+				@remote_window = Window.new(@connection.remote_settings.initial_window_size)
 				
-				# Stream priority:
-				@dependent_id = dependent_id
-				@weight = weight
-				
-				# A cache of streams that have child.dependent_id = self.id
-				@children = children
+				@dependency = @connection.dependency_for(@id)
 			end
-			
-			# Cache of dependent children.
-			attr_accessor :children
 			
 			# The connection this stream belongs to.
 			attr :connection
 			
 			# Stream ID (odd for client initiated streams, even otherwise).
 			attr :id
-
+			
 			# Stream state, e.g. `idle`, `closed`.
 			attr_accessor :state
 			
-			# The stream id that this stream depends on, according to the priority.
-			attr_accessor :dependent_id
-			
-			# The weight of the stream relative to other siblings.
-			attr_accessor :weight
+			attr :dependency
 			
 			attr :local_window
 			attr :remote_window
 			
-			def add_child(stream)
-				@children ||= {}
-				@children[stream.id] = stream
+			def weight
+				@dependency.weight
 			end
 			
-			def remove_child(stream)
-				@children.delete(stream.id)
+			def priority
+				@dependency.priority
 			end
 			
-			def exclusive_child(stream)
-				stream.children = @children
-				
-				@children.each_value do |child|
-					child.dependent_id = stream.id
-				end
-				
-				@children = {stream.id => stream}
-				
-				stream.dependent_id = @id
+			def priority= priority
+				@dependency.priority = priority
 			end
 			
-			def parent(id = @dependent_id)
-				@connection[id] || @connection.accept_stream(id)
+			def parent=(stream)
+				@dependency.parent = stream.dependency
 			end
 			
-			def parent= stream
-				self.parent&.remove_child(self)
-				
-				@dependent_id = stream.id
-				
-				stream.add_child(self)
-			end
-			
-			def process_priority priority
-				dependent_id = priority.stream_dependency
-				
-				if dependent_id == @id
-					raise ProtocolError, "Stream priority for stream id #{@id} cannot depend on itself!"
-				end
-				
-				@weight = priority.weight
-				
-				if priority.exclusive
-					self.parent&.remove_child(self)
-					
-					self.parent(dependent_id).exclusive_child(self)
-				elsif dependent_id != @dependent_id
-					self.parent&.remove_child(self)
-					
-					@dependent_id = dependent_id
-					
-					self.parent.add_child(self)
-				end
+			def children
+				@dependency&.streams
 			end
 			
 			# The stream is being closed because the connection is being closed.
 			def close(error = nil)
+				@connection.delete(@id)
 			end
 			
 			def maximum_frame_size
@@ -315,7 +236,6 @@ module Protocol
 			def open!
 				if @state == :idle
 					@state = :open
-					@connection.activate(self)
 				else
 					raise ProtocolError, "Cannot open stream in state: #{@state}"
 				end
@@ -327,9 +247,6 @@ module Protocol
 			# @param error_code [Integer] the error code if the stream was closed due to a stream reset.
 			def close!(error_code = nil)
 				@state = :closed
-				
-				@connection.deactivate(self)
-				self.parent&.remove_child(self)
 				
 				if error_code
 					error = StreamError.new("Stream closed!", error_code)
@@ -353,7 +270,7 @@ module Protocol
 				end
 			end
 			
-			protected def process_headers(frame)
+			def process_headers(frame)
 				# Receiving request headers:
 				priority, data = frame.unpack
 				
@@ -376,23 +293,23 @@ module Protocol
 						open!
 					end
 					
-					return process_headers(frame)
+					process_headers(frame)
 				elsif @state == :reserved_remote
-					@state = :half_closed_local
+					process_headers(frame)
 					
-					return process_headers(frame)
+					@state = :half_closed_local
 				elsif @state == :open
+					process_headers(frame)
+					
 					if frame.end_stream?
 						@state = :half_closed_remote
 					end
-					
-					return process_headers(frame)
 				elsif @state == :half_closed_local
+					process_headers(frame)
+					
 					if frame.end_stream?
 						close!
 					end
-					
-					return process_headers(frame)
 				elsif self.closed?
 					ignore_headers(frame)
 				else
@@ -435,25 +352,6 @@ module Protocol
 				end
 			end
 			
-			# Change the priority of the stream both locally and remotely.
-			def priority= priority
-				send_priority(priority)
-				process_priority(priority)
-			end
-			
-			# The current local priority of the stream.
-			def priority(exclusive = false)
-				Priority.new(exclusive, @dependent_id, @weight)
-			end
-			
-			def send_priority(priority)
-				@connection.send_priority(@id, priority)
-			end
-			
-			def receive_priority(frame)
-				self.process_priority(frame.unpack)
-			end
-			
 			def ignore_reset_stream(frame)
 				# Async.logger.warn(self) {"Received reset stream (#{error_code}) in state: #{@state}!"}
 			end
@@ -493,7 +391,6 @@ module Protocol
 			def reserved_local!
 				if @state == :idle
 					@state = :reserved_local
-					@connection.activate(self)
 				else
 					raise ProtocolError, "Cannot reserve stream in state: #{@state}"
 				end
@@ -502,7 +399,6 @@ module Protocol
 			def reserved_remote!
 				if @state == :idle
 					@state = :reserved_remote
-					@connection.activate(self)
 				else
 					raise ProtocolError, "Cannot reserve stream in state: #{@state}"
 				end

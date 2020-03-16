@@ -104,7 +104,7 @@ RSpec.describe Protocol::HTTP2::Connection do
 			
 			server.streams[1].send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)
 			
-			expect(stream).to receive(:receive_headers).once.and_wrap_original do |method, frame|
+			expect(stream).to receive(:process_headers).once.and_wrap_original do |method, frame|
 				headers = method.call(frame)
 				
 				expect(headers).to be == response_headers

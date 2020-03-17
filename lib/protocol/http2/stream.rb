@@ -275,7 +275,7 @@ module Protocol
 				priority, data = frame.unpack
 				
 				if priority
-					self.process_priority(priority)
+					@dependency.process_priority(priority)
 				end
 				
 				@connection.decode_headers(data)

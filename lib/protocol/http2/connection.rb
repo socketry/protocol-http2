@@ -20,13 +20,14 @@
 
 require_relative 'framer'
 require_relative 'dependency'
+require_relative 'flow_controlled'
 
 require 'protocol/hpack'
 
 module Protocol
 	module HTTP2
 		class Connection
-			include FlowControl
+			include FlowControlled
 			
 			def initialize(framer, local_stream_id)
 				super()
@@ -463,6 +464,15 @@ module Protocol
 				else
 					raise StreamClosed, "Cannot reset stream #{frame.stream_id}"
 				end
+			end
+			
+			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
+			# @param amount [Integer] the amount of data to write. Defaults to the current window capacity.
+			def consume_window(size = self.available_size)
+				# Return if there is no window to consume:
+				return unless size > 0
+				
+				@dependency.consume_window(size)
 			end
 			
 			def receive_window_update(frame)

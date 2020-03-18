@@ -57,7 +57,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 			server.read_frame
 		end
 		
-		expect(a.children).to be == [b]
+		expect(a.dependency.children).to be == {b.id => b.dependency}
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id]}
 		
 		#    a
@@ -71,7 +71,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 			server.read_frame
 		end
 		
-		expect(a.children).to be == [b, c]
+		expect(a.dependency.children).to be == {b.id => b.dependency, c.id => c.dependency}
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], c.id => server.dependencies[c.id]}
 		
 		#    a
@@ -88,9 +88,32 @@ RSpec.describe Protocol::HTTP2::Stream do
 			server.read_frame
 		end
 		
-		expect(a.children).to be == [d]
-		expect(d.children).to be == [b, c]
+		expect(a.dependency.children).to be == {d.id => d.dependency}
+		expect(d.dependency.children).to be == {b.id => b.dependency, c.id => c.dependency}
 		expect(server.dependencies[a.id].children).to be == {d.id => server.dependencies[d.id]}
 		expect(server.dependencies[d.id].children).to be == {b.id => server.dependencies[b.id], c.id => server.dependencies[c.id]}
+	end
+	
+	it "correctly allocates window" do
+		parent = client.create_stream
+		children = 2.times.collect {client.create_stream}
+		
+		children.each do |child|
+			priority = child.priority
+			priority.stream_dependency = parent.id
+			child.priority = priority
+		end
+		
+		2.times {server.read_frame}
+		
+		# Now we have this prioritization on the server:
+		#    a
+		#   / \
+		#  b   c
+		
+		expect(server.dependencies[children[0].id]).to receive(:consume_window).with(0xFFFF / 2).once
+		expect(server.dependencies[children[1].id]).to receive(:consume_window).with(0xFFFF / 2).once
+		
+		server.consume_window
 	end
 end

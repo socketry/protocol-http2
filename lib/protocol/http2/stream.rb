@@ -72,7 +72,7 @@ module Protocol
 		#
 		# State transition methods use a trailing "!".
 		class Stream
-			include FlowControl
+			include FlowControlled
 			
 			def self.create(connection, id)
 				stream = self.new(connection, id)
@@ -122,10 +122,6 @@ module Protocol
 			
 			def parent=(stream)
 				@dependency.parent = stream.dependency
-			end
-			
-			def children
-				@dependency&.streams
 			end
 			
 			# The stream is being closed because the connection is being closed.

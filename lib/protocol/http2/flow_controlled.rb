@@ -23,7 +23,7 @@ require_relative 'extensions/sum'
 
 module Protocol
 	module HTTP2
-		module FlowControl
+		module FlowControlled
 			def available_size
 				@remote_window.available
 			end
@@ -98,34 +98,8 @@ module Protocol
 			# The window has been expanded by the given amount.
 			# @param size [Integer] the maximum amount of data to send.
 			# @return [Boolean] whether the window update was used or not.
-			def window_updated(size = self.available_size)
+			def window_updated(size)
 				return false
-			end
-			
-			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
-			# @todo This function can get slow when there are a lot of children [INEFFICIENT].
-			# @param amount [Integer] the amount of data to write. Defaults to the current window capacity.
-			def consume_window(size = self.available_size)
-				# Don't consume more than the available window size:
-				size = [self.available_size, size].min
-				# puts "consume_window(#{size}) local_window=#{@local_window} remote_window=#{@remote_window}"
-				
-				# Return if there is no window to consume:
-				return unless size > 0
-				
-				# Allow the current flow-controlled instance to use up the window:
-				if !self.window_updated(size) and children = self.children
-					children = children.sort_by(&:weight)
-					
-					# This must always be at least >= `children.size`, since stream weight can't be 0.
-					total = children.sum(&:weight)
-					
-					children.each do |child|
-						# Compute the proportional allocation:
-						allocated = (child.weight * size) / total
-						child.consume_window(allocated)
-					end
-				end
 			end
 		end
 	end

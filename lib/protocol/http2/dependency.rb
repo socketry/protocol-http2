@@ -18,14 +18,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require_relative 'flow_control'
-
 module Protocol
 	module HTTP2
 		DEFAULT_WEIGHT = 16
 		
 		class Dependency
-			def initialize(connection, id, dependent_id = 0, weight = DEFAULT_WEIGHT, children = nil)
+			def initialize(connection, id, dependent_id = 0, weight = DEFAULT_WEIGHT)
 				@connection = connection
 				@id = id
 				
@@ -33,8 +31,18 @@ module Protocol
 				@dependent_id = dependent_id
 				@weight = weight
 				
-				# A cache of dependencies that have child.dependent_id = self.id
-				@children = children
+				@children = nil
+				
+				# Cache of any associated stream:
+				@stream = nil
+				
+				# Cache of children for window allocation:
+				@total_weight = 0
+				@ordered_children = nil
+			end
+			
+			def <=> other
+				@weight <=> other.weight
 			end
 			
 			def irrelevant?
@@ -62,34 +70,36 @@ module Protocol
 			attr_accessor :weight
 			
 			def stream
-				@connection.streams[@id]
+				@stream ||= @connection.streams[@id]
 			end
 			
-			def streams
-				if @children
-					# TODO this O(N) operation affects performance.
-					# It would be better to maintain a sorted list of children streams.
-					@children.map{|id, dependency| dependency.stream}.compact
-				end
+			def clear_cache!
+				@ordered_children = nil
 			end
 			
 			def add_child(dependency)
 				@children ||= {}
 				@children[dependency.id] = dependency
+				
+				self.clear_cache!
 			end
 			
 			def remove_child(dependency)
 				@children&.delete(dependency.id)
+				
+				self.clear_cache!
 			end
 			
 			def exclusive_child(parent)
 				parent.children = @children
+				parent.clear_cache!
 				
 				@children.each_value do |child|
 					child.dependent_id = parent.id
 				end
 				
 				@children = {parent.id => parent}
+				self.clear_cache!
 				
 				parent.dependent_id = @id
 			end
@@ -125,6 +135,8 @@ module Protocol
 					@dependent_id = dependent_id
 					
 					self.parent.add_child(self)
+				else
+					self.parent&.clear_cache!
 				end
 			end
 			
@@ -145,6 +157,34 @@ module Protocol
 			
 			def receive_priority(frame)
 				self.process_priority(frame.unpack)
+			end
+			
+			def ordered_children
+				unless @ordered_children
+					if @children and !@children.empty?
+						@ordered_children = @children.values.sort
+						@total_weight = @ordered_children.sum(&:weight)
+					end
+				end
+				
+				return @ordered_children
+			end
+			
+			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
+			# @param amount [Integer] the amount of data to write. Defaults to the current window capacity.
+			def consume_window(size)
+				# If there is an associated stream, give it priority:
+				if stream = self.stream
+					return if stream.window_updated(size)
+				end
+				
+				# Otherwise, allow the dependent children to use up the available window:
+				self.ordered_children&.each do |child|
+					# Compute the proportional allocation:
+					allocated = (child.weight * size) / @total_weight
+					
+					child.consume_window(allocated) if allocated > 0
+				end
 			end
 		end
 	end

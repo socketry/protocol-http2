@@ -84,7 +84,7 @@ module Protocol
 			def receive_window_update(frame)
 				amount = frame.unpack
 				
-				# puts "expanding remote_window=#{@remote_window} by #{amount}"
+				# Async.logger.info(self) {"expanding remote_window=#{@remote_window} by #{amount}"}
 				
 				if amount != 0
 					@remote_window.expand(amount)

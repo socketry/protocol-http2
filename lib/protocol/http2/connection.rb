@@ -41,8 +41,11 @@ module Protocol
 				@dependencies = {0 => @dependency}
 				
 				@framer = framer
+				
 				# The next stream id to use:
 				@local_stream_id = local_stream_id
+				
+				# The biggest remote stream id seen thus far:
 				@remote_stream_id = 0
 				
 				@local_settings = PendingSettings.new
@@ -438,14 +441,14 @@ module Protocol
 					if @local_stream_id.even?
 						id < @local_stream_id
 					else
-						id < @remote_stream_id
+						id <= @remote_stream_id
 					end
 				elsif id.odd?
 					# Client-initiated streams are odd.
 					if @local_stream_id.odd?
 						id < @local_stream_id
 					else
-						id < @remote_stream_id
+						id <= @remote_stream_id
 					end
 				end
 			end

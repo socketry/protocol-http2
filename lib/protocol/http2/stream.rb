@@ -130,7 +130,6 @@ module Protocol
 			
 			# The stream is being closed because the connection is being closed.
 			def close(error = nil)
-				@connection.delete(@id)
 			end
 			
 			def maximum_frame_size
@@ -247,6 +246,7 @@ module Protocol
 			# @param error_code [Integer] the error code if the stream was closed due to a stream reset.
 			def close!(error_code = nil)
 				@state = :closed
+				@connection.delete(@id)
 				
 				if error_code
 					error = StreamError.new("Stream closed!", error_code)
@@ -352,16 +352,10 @@ module Protocol
 				end
 			end
 			
-			def ignore_reset_stream(frame)
-				# Async.logger.warn(self) {"Received reset stream (#{error_code}) in state: #{@state}!"}
-			end
-			
 			def receive_reset_stream(frame)
 				if @state == :idle
 					# If a RST_STREAM frame identifying an idle stream is received, the recipient MUST treat this as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
 					raise ProtocolError, "Cannot receive reset stream in state: #{@state}!"
-				elsif self.closed?
-					ignore_reset_stream(frame)
 				else
 					error_code = frame.unpack
 					

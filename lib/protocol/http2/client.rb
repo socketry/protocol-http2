@@ -27,6 +27,14 @@ module Protocol
 				super(framer, 1)
 			end
 			
+			def local_stream_id?(id)
+				id.odd?
+			end
+			
+			def remote_stream_id?(id)
+				id.even?
+			end
+			
 			def valid_remote_stream_id?(stream_id)
 				stream_id.even?
 			end

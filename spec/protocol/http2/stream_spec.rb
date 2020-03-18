@@ -118,9 +118,11 @@ RSpec.describe Protocol::HTTP2::Stream do
 		end
 		
 		it "ignores reset stream" do
-			expect(stream).to receive(:ignore_reset_stream)
+			server_stream = server.create_stream(stream.id)
+			server_stream.open!
+			server_stream.send_reset_stream
 			
-			stream.receive_reset_stream(double)
+			client.read_frame
 		end
 	end
 end

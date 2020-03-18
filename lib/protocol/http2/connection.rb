@@ -41,6 +41,7 @@ module Protocol
 				@dependencies = {0 => @dependency}
 				
 				@framer = framer
+				# The next stream id to use:
 				@local_stream_id = local_stream_id
 				@remote_stream_id = 0
 				
@@ -420,9 +421,42 @@ module Protocol
 				raise ProtocolError, "Unable to receive push promise!"
 			end
 			
+			def client_stream_id?(id)
+				id.odd?
+			end
+			
+			def server_stream_id?(id)
+				id.even?
+			end
+			
+			def closed_stream_id?(id)
+				if id.zero?
+					# The connection "stream id" can never be closed:
+					false
+				elsif id.even?
+					# Server-initiated streams are even.
+					if @local_stream_id.even?
+						id < @local_stream_id
+					else
+						id < @remote_stream_id
+					end
+				elsif id.odd?
+					# Client-initiated streams are odd.
+					if @local_stream_id.odd?
+						id < @local_stream_id
+					else
+						id < @remote_stream_id
+					end
+				end
+			end
+			
 			def receive_reset_stream(frame)
-				if stream = @streams[frame.stream_id]
+				if frame.connection?
+					raise ProtocolError, "Cannot reset connection!"
+				elsif stream = @streams[frame.stream_id]
 					stream.receive_reset_stream(frame)
+				elsif closed_stream_id?(frame.stream_id)
+					# Ignore.
 				else
 					raise StreamClosed, "Cannot reset stream #{frame.stream_id}"
 				end
@@ -439,8 +473,10 @@ module Protocol
 					rescue ProtocolError => error
 						stream.send_reset_stream(error.code)
 					end
-				elsif frame.stream_id > @remote_stream_id
-					# Receiving any frame other than HEADERS or PRIORITY on a stream in this state MUST be treated as a connection error of type PROTOCOL_ERROR.
+				elsif closed_stream_id?(frame.stream_id)
+					# Ignore.
+				else
+					# Receiving any frame other than HEADERS or PRIORITY on a stream in this state (idle) MUST be treated as a connection error of type PROTOCOL_ERROR.
 					raise ProtocolError, "Cannot update window of idle stream #{frame.stream_id}"
 				end
 			end

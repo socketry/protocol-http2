@@ -21,9 +21,6 @@
 
 require_relative 'error'
 
-# This only exists to support Ruby 2.3:
-require_relative 'extensions/unpack'
-
 module Protocol
 	module HTTP2
 		END_STREAM = 0x1

@@ -121,4 +121,32 @@ RSpec.describe Protocol::HTTP2::Stream do
 		
 		server.consume_window
 	end
+	
+	it "correctly allocates window" do
+		streams = 4.times.collect{client.create_stream}
+		
+		top = streams.first
+		
+		top.send_headers(nil, [])
+		top.send_reset_stream
+		
+		2.times {server.read_frame}
+		
+		# The dependency has been recycled:
+		expect(server.dependencies).to_not include(top.id)
+		
+		bottom = streams.last
+		
+		priority = bottom.priority
+		priority.stream_dependency = top.id
+		
+		bottom.send_headers(priority, [])
+		
+		1.times {server.read_frame}
+		
+		expect(server.dependencies).to include(bottom.id)
+		
+		dependency = server.dependencies[bottom.id]
+		expect(dependency.parent).to be == server.dependency
+	end
 end

@@ -163,9 +163,9 @@ module Protocol
 			end
 			
 			# The HEADERS frame is used to open a stream, and additionally carries a header block fragment. HEADERS frames can be sent on a stream in the "idle", "reserved (local)", "open", or "half-closed (remote)" state.
-			def send_headers(*args)
+			def send_headers(*arguments)
 				if @state == :idle
-					frame = write_headers(*args)
+					frame = write_headers(*arguments)
 					
 					if frame.end_stream?
 						@state = :half_closed_local
@@ -173,17 +173,17 @@ module Protocol
 						open!
 					end
 				elsif @state == :reserved_local
-					frame = write_headers(*args)
+					frame = write_headers(*arguments)
 					
 					@state = :half_closed_remote
 				elsif @state == :open
-					frame = write_headers(*args)
+					frame = write_headers(*arguments)
 					
 					if frame.end_stream?
 						@state = :half_closed_local
 					end
 				elsif @state == :half_closed_remote
-					frame = write_headers(*args)
+					frame = write_headers(*arguments)
 					
 					if frame.end_stream?
 						close!

@@ -68,6 +68,9 @@ module Protocol
 				
 				if priority
 					buffer << priority.pack
+					set_flags(PRIORITY)
+				else
+					clear_flags(PRIORITY)
 				end
 				
 				buffer << data

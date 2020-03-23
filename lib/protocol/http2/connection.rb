@@ -63,14 +63,6 @@ module Protocol
 				0
 			end
 			
-			def parent
-				nil
-			end
-			
-			def children
-				@dependency.streams
-			end
-			
 			def [] id
 				if id.zero?
 					self
@@ -113,10 +105,7 @@ module Protocol
 			
 			def delete(id)
 				@streams.delete(id)
-				
-				if dependency = @dependencies[id]
-					dependency.delete! if dependency.irrelevant?
-				end
+				@dependencies[id]&.delete!
 			end
 			
 			# Close the underlying framer and all streams.
@@ -145,20 +134,10 @@ module Protocol
 			end
 			
 			attr :streams
+			
 			attr :dependencies
 			
-			# Fetch (or create) the flow control windows for the specified stream id.
-			# @param id [Integer] the stream id.
-			def dependency_for(id)
-				@dependencies.fetch(id) do
-					dependency = Dependency.new(self, id)
-					
-					# TODO this might be irrelevant, if initially processing priority frame.
-					@dependency.add_child(dependency)
-					
-					@dependencies[id] = dependency
-				end
-			end
+			attr :dependency
 			
 			# 6.8. GOAWAY
 			# There is an inherent race condition between an endpoint starting new streams and the remote sending a GOAWAY frame. To deal with this case, the GOAWAY contains the stream identifier of the last peer-initiated stream that was or might be processed on the sending endpoint in this connection. For instance, if the server sends a GOAWAY frame, the identified stream is the highest-numbered stream initiated by the client.
@@ -415,10 +394,31 @@ module Protocol
 				write_frame(frame)
 			end
 			
+			def idle_stream_id?(id)
+				if id.even?
+					# Server-initiated streams are even.
+					if @local_stream_id.even?
+						id >= @local_stream_id
+					else
+						id > @remote_stream_id
+					end
+				elsif id.odd?
+					# Client-initiated streams are odd.
+					if @local_stream_id.odd?
+						id >= @local_stream_id
+					else
+						id > @remote_stream_id
+					end
+				end
+			end
+			
 			# Sets the priority for an incoming stream.
 			def receive_priority(frame)
-				dependency = dependency_for(frame.stream_id)
-				dependency.receive_priority(frame)
+				if dependency = @dependencies[frame.stream_id]
+					dependency.receive_priority(frame)
+				elsif idle_stream_id?(frame.stream_id)
+					Dependency.create(self, frame.stream_id, frame.unpack)
+				end
 			end
 			
 			def receive_push_promise(frame)
@@ -471,6 +471,16 @@ module Protocol
 			def consume_window(size = self.available_size)
 				# Return if there is no window to consume:
 				return unless size > 0
+				
+				# Console.logger.debug(self) do |buffer|
+				# 	@dependencies.each do |id, dependency|
+				# 		buffer.puts "- #{dependency}"
+				# 	end
+				# 
+				# 	buffer.puts
+				# 
+				# 	@dependency.print_hierarchy(buffer)
+				# end
 				
 				@dependency.consume_window(size)
 			end

@@ -91,7 +91,7 @@ module Protocol
 				@local_window = Window.new(@connection.local_settings.initial_window_size)
 				@remote_window = Window.new(@connection.remote_settings.initial_window_size)
 				
-				@dependency = @connection.dependency_for(@id)
+				@dependency = Dependency.create(@connection, @id)
 			end
 			
 			# The connection this stream belongs to.

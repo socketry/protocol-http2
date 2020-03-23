@@ -50,6 +50,9 @@ RSpec.describe Protocol::HTTP2::Stream do
 		#   /
 		#  b
 		begin
+			a.priority = a.priority
+			server.read_frame
+			
 			priority = b.priority
 			priority.stream_dependency = a.id
 			b.priority = priority
@@ -58,6 +61,8 @@ RSpec.describe Protocol::HTTP2::Stream do
 		end
 		
 		expect(a.dependency.children).to be == {b.id => b.dependency}
+		
+		expect(server.dependencies).to include(a.id)
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id]}
 		
 		#    a

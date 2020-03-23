@@ -23,15 +23,43 @@ module Protocol
 		DEFAULT_WEIGHT = 16
 		
 		class Dependency
-			def initialize(connection, id, dependent_id = 0, weight = DEFAULT_WEIGHT)
+			def self.create(connection, id, priority = nil)
+				weight = DEFAULT_WEIGHT
+				exclusive = false
+				
+				if priority
+					if parent = connection.dependencies[priority.stream_dependency]
+						exclusive = priority.exclusive
+					end
+					
+					weight = priority.weight
+				end
+				
+				if parent.nil?
+					parent = connection.dependency
+				end
+				
+				dependency = self.new(connection, id, weight)
+				
+				connection.dependencies[id] = dependency
+				
+				if exclusive
+					parent.exclusive_child(dependency)
+				else
+					parent.add_child(dependency)
+				end
+				
+				return dependency
+			end
+			
+			def initialize(connection, id, weight = DEFAULT_WEIGHT)
 				@connection = connection
 				@id = id
 				
-				# Stream priority:
-				@dependent_id = dependent_id
-				@weight = weight
-				
+				@parent = nil
 				@children = nil
+				
+				@weight = weight
 				
 				# Cache of any associated stream:
 				@stream = nil
@@ -45,26 +73,17 @@ module Protocol
 				@weight <=> other.weight
 			end
 			
-			def irrelevant?
-				(@weight == DEFAULT_WEIGHT) && (@children.nil? || @children.empty?)
-			end
-			
-			def delete!
-				@connection.dependencies.delete(@id)
-				self.parent&.remove_child(self)
-			end
-			
-			# Cache of dependent children.
-			attr_accessor :children
-			
 			# The connection this stream belongs to.
 			attr :connection
 			
 			# Stream ID (odd for client initiated streams, even otherwise).
 			attr :id
 			
-			# The stream id that this stream depends on, according to the priority.
-			attr_accessor :dependent_id
+			# The parent dependency.
+			attr_accessor :parent
+			
+			# The dependent children.
+			attr_accessor :children
 			
 			# The weight of the stream relative to other siblings.
 			attr_accessor :weight
@@ -77,9 +96,25 @@ module Protocol
 				@ordered_children = nil
 			end
 			
+			def delete!
+				@connection.dependencies.delete(@id)
+				
+				@parent.remove_child(self)
+				
+				@children&.each do |id, child|
+					parent.add_child(child)
+				end
+				
+				@connection = nil
+				@parent = nil
+				@children = nil
+			end
+			
 			def add_child(dependency)
 				@children ||= {}
 				@children[dependency.id] = dependency
+				
+				dependency.parent = self
 				
 				self.clear_cache!
 			end
@@ -90,33 +125,24 @@ module Protocol
 				self.clear_cache!
 			end
 			
+			# An exclusive flag allows for the insertion of a new level of dependencies.  The exclusive flag causes the stream to become the sole dependency of its parent stream, causing other dependencies to become dependent on the exclusive stream.
+			# @param parent [Dependency] the dependency which will be inserted, taking control of all current children.
 			def exclusive_child(parent)
 				parent.children = @children
-				parent.clear_cache!
 				
-				@children.each_value do |child|
-					child.dependent_id = parent.id
+				@children&.each_value do |child|
+					child.parent = parent
 				end
+				
+				parent.clear_cache!
 				
 				@children = {parent.id => parent}
 				self.clear_cache!
 				
-				parent.dependent_id = @id
+				parent.parent = self
 			end
 			
-			def parent(id = @dependent_id)
-				@connection.dependency_for(id)
-			end
-			
-			def parent= dependency
-				self.parent&.remove_child(self)
-				
-				@dependent_id = dependency.id
-				
-				dependency.add_child(self)
-			end
-			
-			def process_priority priority
+			def process_priority(priority)
 				dependent_id = priority.stream_dependency
 				
 				if dependent_id == @id
@@ -125,18 +151,17 @@ module Protocol
 				
 				@weight = priority.weight
 				
-				if priority.exclusive
-					self.parent&.remove_child(self)
-					
-					self.parent(dependent_id).exclusive_child(self)
-				elsif dependent_id != @dependent_id
-					self.parent&.remove_child(self)
-					
-					@dependent_id = dependent_id
-					
-					self.parent.add_child(self)
-				else
-					self.parent&.clear_cache!
+				# We essentially ignore `dependent_id` if the dependency does not exist:
+				if parent = @connection.dependencies[dependent_id]
+					if priority.exclusive
+						@parent.remove_child(self)
+						
+						parent.exclusive_child(self)
+					elsif !@parent.equal?(parent)
+						@parent.remove_child(self)
+						
+						parent.add_child(self)
+					end
 				end
 			end
 			
@@ -148,7 +173,7 @@ module Protocol
 			
 			# The current local priority of the stream.
 			def priority(exclusive = false)
-				Priority.new(exclusive, @dependent_id, @weight)
+				Priority.new(exclusive, @parent.id, @weight)
 			end
 			
 			def send_priority(priority)
@@ -157,6 +182,12 @@ module Protocol
 			
 			def receive_priority(frame)
 				self.process_priority(frame.unpack)
+			end
+			
+			def total_weight
+				self.orderd_children
+				
+				return @total_weight
 			end
 			
 			def ordered_children
@@ -184,6 +215,17 @@ module Protocol
 					allocated = (child.weight * size) / @total_weight
 					
 					child.consume_window(allocated) if allocated > 0
+				end
+			end
+			
+			def to_s
+				"\#<#{self.class} id=#{@id} parent id=#{@parent&.id} weight=#{@weight} #{@children&.size || 0} children>"
+			end
+			
+			def print_hierarchy(buffer, indent: 0)
+				buffer.puts "#{" " * indent}#{self}"
+				@children&.each_value do |child|
+					child.print_hierarchy(buffer, indent: indent+1)
 				end
 			end
 		end

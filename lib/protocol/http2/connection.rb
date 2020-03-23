@@ -320,6 +320,8 @@ module Protocol
 				
 				if stream = @streams[frame.stream_id]
 					stream.receive_data(frame)
+				elsif closed_stream_id?(frame.stream_id)
+					# This can occur if one end sent a stream reset, while the other end was sending a data frame. It's mostly harmless.
 				else
 					raise ProtocolError, "Cannot receive data for stream id #{frame.stream_id}"
 				end

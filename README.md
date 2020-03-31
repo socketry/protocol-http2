@@ -29,7 +29,6 @@ require 'async'
 require 'async/io/stream'
 require 'async/http/endpoint'
 require 'protocol/http2/client'
-require 'pry'
 
 Async do
 	endpoint = Async::HTTP::Endpoint.parse("https://www.google.com/search?q=kittens")
@@ -82,8 +81,6 @@ Async do
 	end
 	
 	puts "Got #{$count} kittens!"
-	
-	binding.pry
 	
 	puts "Closing client..."
 	client.close

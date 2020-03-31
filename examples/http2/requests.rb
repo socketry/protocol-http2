@@ -5,7 +5,6 @@ require 'async'
 require 'async/io/stream'
 require 'async/http/endpoint'
 require 'protocol/http2/client'
-require 'pry'
 
 queries = ["apple", "orange", "teapot", "async"]
 

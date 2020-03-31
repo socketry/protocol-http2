@@ -55,8 +55,8 @@ module Protocol
 				@decoder = HPACK::Context.new
 				@encoder = HPACK::Context.new
 				
-				@local_window = Window.new(@local_settings.initial_window_size)
-				@remote_window = Window.new(@remote_settings.initial_window_size)
+				@local_window = LocalWindow.new
+				@remote_window = Window.new
 			end
 			
 			def id
@@ -183,13 +183,6 @@ module Protocol
 				frame.pack(changes)
 				
 				write_frame(frame)
-				
-				# If the initial window size is set to something bigger than the default, we want to increase it.
-				difference = @local_settings.pending.initial_window_size - @local_window.capacity
-				
-				if difference > 0
-					send_window_update(difference)
-				end
 			end
 			
 			# Transition the connection into the closed state.
@@ -235,6 +228,8 @@ module Protocol
 				@streams.each_value do |stream|
 					stream.local_window.capacity = capacity
 				end
+				
+				@local_window.desired = capacity
 			end
 			
 			def update_remote_settings(changes)

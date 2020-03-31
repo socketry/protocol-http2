@@ -33,10 +33,6 @@ module Protocol
 				@capacity = capacity
 			end
 			
-			def dup
-				return self.class.new(@capacity)
-			end
-			
 			# The window is completely full?
 			def full?
 				@available <= 0
@@ -73,12 +69,40 @@ module Protocol
 				end
 			end
 			
+			def wanted
+				@used
+			end
+			
 			def limited?
 				@available < (@capacity / 2)
 			end
 			
 			def to_s
 				"\#<Window used=#{@used} available=#{@available} capacity=#{@capacity}>"
+			end
+		end
+		
+		# This is a window which efficiently maintains a desired capacity.
+		class LocalWindow < Window
+			def initialize(capacity = 0xFFFF, desired: nil)
+				super(capacity)
+				
+				@desired = desired
+			end
+			
+			attr_accessor :desired
+			
+			def wanted
+				if @desired
+					# We must send an update which allows at least @desired bytes to be sent.
+					(@desired - @capacity) + @used
+				else
+					@used
+				end
+			end
+			
+			def limited?
+				@available < ((@desired || @capacity) / 2)
 			end
 		end
 		

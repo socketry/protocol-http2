@@ -87,7 +87,7 @@ RSpec.describe Protocol::HTTP2::Window do
 		expect(frame.unpack).to eq 120
 	end
 	
-	context '#receive_window_update' do
+	describe '#receive_window_update' do
 		it "should be invoked when window update is received" do
 			# Write 200 bytes of data (client -> server) which exhausts server local window
 			stream.send_data("*" * 200)

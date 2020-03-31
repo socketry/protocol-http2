@@ -60,13 +60,14 @@ module Protocol
 			end
 			
 			def consume_local_window(frame)
+				# For flow-control calculations, the 9-octet frame header is not counted.
 				amount = frame.length
 				@local_window.consume(amount)
 			end
 			
 			def request_window_update
 				if @local_window.limited?
-					self.send_window_update(@local_window.used)
+					self.send_window_update(@local_window.wanted)
 				end
 			end
 			

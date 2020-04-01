@@ -124,10 +124,6 @@ module Protocol
 				@dependency.parent = stream.dependency
 			end
 			
-			# The stream is being closed because the connection is being closed.
-			def close(error = nil)
-			end
-			
 			def maximum_frame_size
 				@connection.available_frame_size
 			end
@@ -142,6 +138,15 @@ module Protocol
 			
 			def closed?
 				@state == :closed
+			end
+			
+			# Transition directly to closed state. Do not pass go, do not collect $200.
+			# This method should only be used by `Connection#close`.
+			def close(error = nil)
+				unless closed?
+					@state = :closed
+					self.closed(error)
+				end
 			end
 			
 			def send_headers?
@@ -228,6 +233,10 @@ module Protocol
 				end
 			end
 			
+			# The stream has been opened.
+			def opened(error = nil)
+			end
+			
 			def open!
 				if @state == :idle
 					@state = :open
@@ -235,7 +244,13 @@ module Protocol
 					raise ProtocolError, "Cannot open stream in state: #{@state}"
 				end
 				
+				self.opened
+				
 				return self
+			end
+			
+			# The stream has been closed. If closed due to a stream reset, the error will be set.
+			def closed(error = nil)
 			end
 			
 			# Transition the stream into the closed state.
@@ -248,7 +263,7 @@ module Protocol
 					error = StreamError.new("Stream closed!", error_code)
 				end
 				
-				self.close(error)
+				self.closed(error)
 				
 				return self
 			end

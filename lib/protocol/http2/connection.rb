@@ -112,9 +112,12 @@ module Protocol
 			def close(error = nil)
 				# The underlying socket may already be closed by this point.
 				@streams.each_value{|stream| stream.close(error)}
+				@streams.clear
 				
-				@framer.close
-				@framer = nil
+				if @framer
+					@framer.close
+					@framer = nil
+				end
 			end
 			
 			def encode_headers(headers, buffer = String.new.b)

@@ -110,10 +110,11 @@ module Protocol
 			
 			# Close the underlying framer and all streams.
 			def close(error = nil)
-				@framer.close
-				# @framer = nil
-				
+				# The underlying socket may already be closed by this point.
 				@streams.each_value{|stream| stream.close(error)}
+				
+				@framer.close
+				@framer = nil
 			end
 			
 			def encode_headers(headers, buffer = String.new.b)

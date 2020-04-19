@@ -16,7 +16,7 @@ end
 if ENV["_"] =~ /afl/
 	require 'kisaten'
 	
-	Kisaten.crash_at [Exception], [EOFError, Protocol::HTTP2::FrameSizeError], Signal.list['USR1']
+	Kisaten.crash_at [Exception], [EOFError, Protocol::HTTP2::FrameSizeError, Protocol::HTTP2::ProtocolError], Signal.list['USR1']
 	
 	while Kisaten.loop 10_000
 		test

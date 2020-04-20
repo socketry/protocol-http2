@@ -99,8 +99,9 @@ module Protocol
 			# The highest stream_id that has been successfully accepted by this connection.
 			attr :remote_stream_id
 			
+			# Whether the connection is effectively or actually closed.
 			def closed?
-				@state == :closed
+				@state == :closed || @framer.nil?
 			end
 			
 			def delete(id)

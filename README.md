@@ -2,7 +2,7 @@
 
 Provides a low-level implementation of the HTTP/2 protocol.
 
-[![Build Status](https://travis-ci.com/socketry/protocol-http2.svg?branch=master)](https://travis-ci.com/socketry/protocol-http2?branch=master)
+[![Actions Status](https://github.com/socketry/protocol-http2/workflows/Development/badge.svg)](https://github.com/socketry/protocol-http2/actions?workflow=Development)
 
 ## Installation
 

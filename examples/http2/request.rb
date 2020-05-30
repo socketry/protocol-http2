@@ -44,12 +44,11 @@ Async do
 		puts "Got response headers: #{headers} (#{frame.end_stream?})"
 	end
 	
-	def stream.receive_data(frame)
-		data = super
-		
-		$count += data.scan(/kittens/).size
-		
-		puts "Got response data: #{data.bytesize}"
+	def stream.process_data(frame)
+		if data = super
+			$count += data.scan(/kittens/).size
+			puts "Got response data: #{data.bytesize}"
+		end
 	end
 	
 	until stream.closed?

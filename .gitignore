@@ -6,8 +6,9 @@
 /pkg/
 /spec/reports/
 /tmp/
+/fuzz/*/output/
 
 # rspec failure tracking
 .rspec_status
-Gemfile.lock
+/gems.locked
 .covered.db

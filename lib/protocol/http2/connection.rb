@@ -77,7 +77,7 @@ module Protocol
 			end
 			
 			def maximum_concurrent_streams
-				[@local_settings.maximum_concurrent_streams, @remote_settings.maximum_concurrent_streams].min
+				@local_settings.maximum_concurrent_streams
 			end
 			
 			attr :framer

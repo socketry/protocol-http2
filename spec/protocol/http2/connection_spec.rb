@@ -189,4 +189,52 @@ RSpec.describe Protocol::HTTP2::Connection do
 			expect(frame).to be_end_stream
 		end
 	end
+
+	it "allows client to create new stream and send headers when client maximum concurrent streams is 0" do
+		client.local_settings.current.maximum_concurrent_streams = 0
+		client_stream = client.create_stream
+		request_headers = [[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]
+		client_stream.send_headers(nil, request_headers)
+
+		expect(server).to receive(:receive_headers).once.and_wrap_original do |method, frame|
+			headers = method.call(frame)
+
+			expect(headers).to be == request_headers
+		end
+
+		server.read_frame
+	end
+
+	it "does not allow client to create new stream and send headers when server maximum concurrent streams is 0" do
+		server.local_settings.current.maximum_concurrent_streams = 0
+		client_stream = client.create_stream
+		request_headers = [[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]
+		client_stream.send_headers(nil, request_headers)
+
+		expect { server.read_frame }.to raise_error(Protocol::HTTP2::ProtocolError)
+	end
+
+	it "allows server to create new stream and send headers when server maximum concurrent streams is 0" do
+		server.local_settings.current.maximum_concurrent_streams = 0
+		server_stream = server.create_stream
+		request_headers = [[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]
+		server_stream.send_headers(nil, request_headers)
+
+		expect(client).to receive(:receive_headers).once.and_wrap_original do |method, frame|
+			headers = method.call(frame)
+
+			expect(headers).to be == request_headers
+		end
+
+		client.read_frame
+	end
+
+	it "does not allow server to create new stream send headers when client maximum concurrent streams is 0" do
+		client.local_settings.current.maximum_concurrent_streams = 0
+		server_stream = server.create_stream
+		request_headers = [[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]
+		server_stream.send_headers(nil, request_headers)
+
+		expect { client.read_frame }.to raise_error(Protocol::HTTP2::ProtocolError)
+	end
 end

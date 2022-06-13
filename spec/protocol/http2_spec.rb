@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'protocol/http2/version'
+
 RSpec.describe Protocol::HTTP2 do
 	it "has a version number" do
 		expect(Protocol::HTTP2::VERSION).not_to be nil

@@ -31,4 +31,19 @@ describe Protocol::HTTP2::ResetStreamFrame do
 			expect(frame.unpack).to be == error
 		end
 	end
+	
+	with '#read_payload' do
+		let(:stream) {StringIO.new("!!!")}
+		
+		it "must be 4 bytes long" do 
+			frame.pack(error)
+			expect(frame.length).to be == 4
+			
+			frame.length = 3
+			
+			expect do
+				frame.read_payload(stream)
+			end.to raise_exception(Protocol::HTTP2::FrameSizeError)
+		end
+	end
 end

@@ -5,8 +5,8 @@
 
 require 'protocol/http2/version'
 
-RSpec.describe Protocol::HTTP2 do
+describe Protocol::HTTP2 do
 	it "has a version number" do
-		expect(Protocol::HTTP2::VERSION).not_to be nil
+		expect(Protocol::HTTP2::VERSION).to be =~ /\d+\.\d+\.\d+/
 	end
 end

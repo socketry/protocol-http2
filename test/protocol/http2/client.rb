@@ -3,10 +3,10 @@
 # Released under the MIT License.
 # Copyright, 2019-2023, by Samuel Williams.
 
-require_relative 'connection_context'
+require 'connection_context'
 
-RSpec.describe Protocol::HTTP2::Client do
-	include_context Protocol::HTTP2::Connection
+describe Protocol::HTTP2::Client do
+	include_context ConnectionContext
 	
 	let(:framer) {server.framer}
 	
@@ -15,16 +15,16 @@ RSpec.describe Protocol::HTTP2::Client do
 	end
 	
 	it "should start in new state" do
-		expect(client.state).to eq :new
+		expect(client.state).to be == :new
 	end
 	
 	it "should send connection preface followed by settings frame" do
 		client.send_connection_preface(settings) do
-			expect(framer.read_connection_preface).to eq Protocol::HTTP2::CONNECTION_PREFACE_MAGIC
+			expect(framer.read_connection_preface).to be == Protocol::HTTP2::CONNECTION_PREFACE_MAGIC
 			
 			client_settings_frame = framer.read_frame
-			expect(client_settings_frame).to be_kind_of Protocol::HTTP2::SettingsFrame
-			expect(client_settings_frame.unpack).to eq settings
+			expect(client_settings_frame).to be_a Protocol::HTTP2::SettingsFrame
+			expect(client_settings_frame.unpack).to be == settings
 			
 			# Fake (empty) server settings:
 			server_settings_frame = Protocol::HTTP2::SettingsFrame.new
@@ -34,11 +34,11 @@ RSpec.describe Protocol::HTTP2::Client do
 			framer.write_frame(client_settings_frame.acknowledge)
 		end
 		
-		expect(client.state).to eq :new
+		expect(client.state).to be == :new
 		
 		client.read_frame
 		
-		expect(client.state).to eq :open
-		expect(client.local_settings.header_table_size).to eq 1024
+		expect(client.state).to be == :open
+		expect(client.local_settings.header_table_size).to be == 1024
 	end
 end

@@ -4,16 +4,20 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/data_frame'
-require_relative 'frame_examples'
+require 'frame_examples'
 
-RSpec.describe Protocol::HTTP2::DataFrame do
-	it_behaves_like Protocol::HTTP2::Frame do
-		before do
-			subject.pack "Hello World!"
+describe Protocol::HTTP2::DataFrame do
+	let(:frame) {subject.new}
+	
+	it_behaves_like FrameExamples do
+		def before
+			frame.pack "Hello World!"
+			
+			super
 		end
 	end
 	
-	context 'wire representation' do
+	with "wire representation" do
 		let(:stream) {StringIO.new}
 		
 		let(:payload) {'Hello World!'}
@@ -23,12 +27,12 @@ RSpec.describe Protocol::HTTP2::DataFrame do
 		end
 		
 		it "should write frame to buffer" do
-			subject.set_flags(Protocol::HTTP2::END_STREAM)
-			subject.stream_id = 1
-			subject.payload = payload
-			subject.length = payload.bytesize
+			frame.set_flags(Protocol::HTTP2::END_STREAM)
+			frame.stream_id = 1
+			frame.payload = payload
+			frame.length = payload.bytesize
 			
-			subject.write(stream)
+			frame.write(stream)
 			
 			expect(stream.string).to be == data
 		end
@@ -37,29 +41,29 @@ RSpec.describe Protocol::HTTP2::DataFrame do
 			stream.write(data)
 			stream.seek(0)
 			
-			subject.read(stream)
+			frame.read(stream)
 			
-			expect(subject.length).to be == payload.bytesize
-			expect(subject.flags).to be == Protocol::HTTP2::END_STREAM
-			expect(subject.stream_id).to be == 1
-			expect(subject.payload).to be == payload
+			expect(frame.length).to be == payload.bytesize
+			expect(frame.flags).to be == Protocol::HTTP2::END_STREAM
+			expect(frame.stream_id).to be == 1
+			expect(frame.payload).to be == payload
 		end
 	end
 	
-	describe '#pack' do
+	with '#pack' do
 		it "adds appropriate padding" do
-			subject.pack "Hello World!", padding_size: 4
+			frame.pack "Hello World!", padding_size: 4
 			
-			expect(subject.length).to be == 16
-			expect(subject.payload[0].ord).to be == 4
+			expect(frame.length).to be == 16
+			expect(frame.payload[0].ord).to be == 4
 		end
 	end
 	
-	describe '#unpack' do
+	with '#unpack' do
 		it "removes padding" do
-			subject.pack "Hello World!"
+			frame.pack "Hello World!"
 			
-			expect(subject.unpack).to be == "Hello World!"
+			expect(frame.unpack).to be == "Hello World!"
 		end
 	end
 end

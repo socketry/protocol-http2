@@ -4,30 +4,33 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/goaway_frame'
-require_relative 'frame_examples'
+require 'frame_examples'
 
-RSpec.describe Protocol::HTTP2::GoawayFrame do
+describe Protocol::HTTP2::GoawayFrame do
 	let(:data) {"Hikikomori desu!"}
+	let(:frame) {subject.new}
 	
-	it_behaves_like Protocol::HTTP2::Frame do
-		before do
-			subject.pack 1, 2, data
+	it_behaves_like FrameExamples do
+		def before
+			frame.pack 1, 2, data
+			
+			super
 		end
 	end
 	
-	describe '#pack' do
+	with '#pack' do
 		it "packs data" do
-			subject.pack 3, 2, data
+			frame.pack 3, 2, data
 			
-			expect(subject.length).to be == 8+data.bytesize
+			expect(frame.length).to be == 8+data.bytesize
 		end
 	end
 	
-	describe '#unpack' do
+	with '#unpack' do
 		it "unpacks data" do
-			subject.pack 3, 2, data
+			frame.pack 3, 2, data
 			
-			expect(subject.unpack).to be == [3, 2, data]
+			expect(frame.unpack).to be == [3, 2, data]
 		end
 	end
 end

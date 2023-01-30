@@ -4,30 +4,33 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/ping_frame'
-require_relative 'frame_examples'
+require 'frame_examples'
 
-RSpec.describe Protocol::HTTP2::PingFrame do
+describe Protocol::HTTP2::PingFrame do
 	let(:data) {"PingPong"}
+	let(:frame) {subject.new}
 	
-	it_behaves_like Protocol::HTTP2::Frame do
-		before do
-			subject.pack data
+	it_behaves_like FrameExamples do
+		def before
+			frame.pack data
+			
+			super
 		end
 	end
 	
-	describe '#pack' do
+	with '#pack' do
 		it "packs data" do
-			subject.pack data
+			frame.pack data
 			
-			expect(subject.length).to be == 8
+			expect(frame.length).to be == 8
 		end
 	end
 	
-	describe '#unpack' do
+	with '#unpack' do
 		it "unpacks data" do
-			subject.pack data
+			frame.pack data
 			
-			expect(subject.unpack).to be == data
+			expect(frame.unpack).to be == data
 		end
 	end
 end

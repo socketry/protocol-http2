@@ -3,21 +3,23 @@
 # Released under the MIT License.
 # Copyright, 2020-2023, by Samuel Williams.
 
-require_relative 'connection_context'
+require 'connection_context'
 
-RSpec.describe Protocol::HTTP2::Stream do
-	include_context Protocol::HTTP2::Connection
+describe Protocol::HTTP2::Stream do
+	include_context ConnectionContext
 	
-	before do
+	def before
 		client.open!
 		server.open!
+		
+		super
 	end
 	
 	it "can set the priority of a stream" do
 		stream = client.create_stream
 		
 		priority = stream.priority
-		expect(priority.weight).to be 16
+		expect(priority.weight).to be == 16
 		
 		priority.weight = 32
 		
@@ -47,7 +49,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 		
 		expect(a.dependency.children).to be == {b.id => b.dependency}
 		
-		expect(server.dependencies).to include(a.id)
+		expect(server.dependencies).to have_keys(a.id)
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id]}
 		
 		#    a
@@ -118,7 +120,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 		2.times {server.read_frame}
 		
 		# The dependency has been recycled:
-		expect(server.dependencies).to_not include(top.id)
+		expect(server.dependencies).not.to have_keys(top.id)
 		
 		bottom = streams.last
 		
@@ -129,7 +131,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 		
 		1.times {server.read_frame}
 		
-		expect(server.dependencies).to include(bottom.id)
+		expect(server.dependencies).to have_keys(bottom.id)
 		
 		dependency = server.dependencies[bottom.id]
 		expect(dependency.parent).to be == server.dependency

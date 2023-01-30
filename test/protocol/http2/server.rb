@@ -3,10 +3,10 @@
 # Released under the MIT License.
 # Copyright, 2019-2023, by Samuel Williams.
 
-require_relative 'connection_context'
+require 'connection_context'
 
-RSpec.describe Protocol::HTTP2::Client do
-	include_context Protocol::HTTP2::Connection
+describe Protocol::HTTP2::Client do
+	include_context ConnectionContext
 	
 	let(:framer) {client.framer}
 	
@@ -19,7 +19,7 @@ RSpec.describe Protocol::HTTP2::Client do
 	end
 	
 	it "should start in new state" do
-		expect(server.state).to eq :new
+		expect(server.state).to be == :new
 	end
 	
 	it "should receive connection preface followed by settings frame" do
@@ -30,27 +30,27 @@ RSpec.describe Protocol::HTTP2::Client do
 		settings_frame.pack(client_settings)
 		framer.write_frame(settings_frame)
 		
-		expect(server.state).to eq :new
+		expect(server.state).to be == :new
 		
 		# The server should read the preface and settings...
 		server.read_connection_preface(server_settings)
-		expect(server.remote_settings.header_table_size).to eq 1024
+		expect(server.remote_settings.header_table_size).to be == 1024
 		
 		# The server immediately sends its own settings frame...
 		frame = framer.read_frame
-		expect(frame).to be_kind_of Protocol::HTTP2::SettingsFrame
-		expect(frame.unpack).to eq server_settings
+		expect(frame).to be_a Protocol::HTTP2::SettingsFrame
+		expect(frame.unpack).to be == server_settings
 		
 		# And then it acknowledges the client settings:
 		frame = framer.read_frame
-		expect(frame).to be_kind_of Protocol::HTTP2::SettingsFrame
-		expect(frame).to be_acknowledgement
+		expect(frame).to be_a Protocol::HTTP2::SettingsFrame
+		expect(frame).to be(:acknowledgement?)
 		
 		# We reply with acknolwedgement:
 		framer.write_frame(frame.acknowledge)
 		
 		server.read_frame
 		
-		expect(server.state).to eq :open
+		expect(server.state).to be == :open
 	end
 end

@@ -4,32 +4,35 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/settings_frame'
-require_relative 'frame_examples'
+require 'frame_examples'
 
-RSpec.describe Protocol::HTTP2::SettingsFrame do
+describe Protocol::HTTP2::SettingsFrame do
 	let(:settings) {[
 		[3, 10], [5, 1048576], [4, 2147483647], [8, 1]
 	]}
+	let(:frame) {subject.new}
 	
-	it_behaves_like Protocol::HTTP2::Frame do
-		before do
-			subject.pack settings
+	it_behaves_like FrameExamples do
+		def before
+			frame.pack settings
+			
+			super
 		end
 	end
 	
-	describe '#pack' do
+	with '#pack' do
 		it "packs settings" do
-			subject.pack settings
+			frame.pack settings
 			
-			expect(subject.length).to be == 6*settings.size
+			expect(frame.length).to be == 6*settings.size
 		end
 	end
 	
-	describe '#unpack' do
+	with '#unpack' do
 		it "unpacks settings" do
-			subject.pack settings
+			frame.pack settings
 			
-			expect(subject.unpack).to be == settings
+			expect(frame.unpack).to be == settings
 		end
 	end
 end

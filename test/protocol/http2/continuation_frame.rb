@@ -4,42 +4,45 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/continuation_frame'
-require_relative 'frame_examples'
+require 'frame_examples'
 
-RSpec.describe Protocol::HTTP2::ContinuationFrame do
+describe Protocol::HTTP2::ContinuationFrame do
 	let(:data) {"Hello World!"}
+	let(:frame) {subject.new}
 	
-	it_behaves_like Protocol::HTTP2::Frame do
-		before do
-			subject.pack data
+	it_behaves_like FrameExamples do
+		def before
+			frame.pack data
+			
+			super
 		end
 	end
 	
-	describe '#pack' do
+	with '#pack' do
 		it "packs data" do
-			subject.pack data
+			frame.pack data
 			
-			expect(subject.length).to be == data.bytesize
+			expect(frame.length).to be == data.bytesize
 		end
 		
 		it "packs data over multiple continuation frames" do
-			subject.pack data, maximum_size: 6
+			frame.pack data, maximum_size: 6
 			
-			expect(subject.continuation).to_not be_nil
+			expect(frame.continuation).not.to be_nil
 		end
 	end
 	
-	describe '#unpack' do
+	with '#unpack' do
 		it "unpacks data" do
-			subject.pack data
+			frame.pack data
 			
-			expect(subject.unpack).to be == data
+			expect(frame.unpack).to be == data
 		end
 		
 		it "unpacks data over multiple continuations" do
-			subject.pack data, maximum_size: 2
+			frame.pack data, maximum_size: 2
 			
-			expect(subject.unpack).to be == data
+			expect(frame.unpack).to be == data
 		end
 	end
 end

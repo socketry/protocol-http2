@@ -4,43 +4,48 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/push_promise_frame'
-require_relative 'connection_context'
-require_relative 'frame_examples'
+require 'connection_context'
+require 'frame_examples'
 
-RSpec.describe Protocol::HTTP2::PushPromiseFrame do
+describe Protocol::HTTP2::PushPromiseFrame do
 	let(:stream_id) {5}
 	let(:data) {"Hello World!"}
+	let(:frame) {subject.new}
 	
-	it_behaves_like Protocol::HTTP2::Frame do
-		before do
-			subject.set_flags(Protocol::HTTP2::END_HEADERS)
-			subject.pack stream_id, data
+	it_behaves_like FrameExamples do
+		def before
+			frame.set_flags(Protocol::HTTP2::END_HEADERS)
+			frame.pack stream_id, data
+			
+			super
 		end
 	end
 	
-	describe '#pack' do
+	with '#pack' do
 		it "packs stream_id and data with padding" do
-			subject.pack stream_id, data
+			frame.pack stream_id, data
 			
-			expect(subject.padded?).to be_falsey
-			expect(subject.length).to be == 16
+			expect(frame.padded?).to be_falsey
+			expect(frame.length).to be == 16
 		end
 	end
 	
-	describe '#unpack' do
+	with '#unpack' do
 		it "unpacks stream_id and data" do
-			subject.pack stream_id, data
+			frame.pack stream_id, data
 			
-			expect(subject.unpack).to be == [stream_id, data]
+			expect(frame.unpack).to be == [stream_id, data]
 		end
 	end
 	
-	context "client/server connection" do
-		include_context Protocol::HTTP2::Connection
+	with "client/server connection" do
+		include_context ConnectionContext
 		
-		before do
+		def before
 			client.open!
 			server.open!
+			
+			super
 		end
 		
 		let(:stream) {client.create_stream}
@@ -58,7 +63,7 @@ RSpec.describe Protocol::HTTP2::PushPromiseFrame do
 			stream.send_headers(nil, request_headers)
 			
 			# Server receives request:
-			expect(server.read_frame).to be_kind_of Protocol::HTTP2::HeadersFrame
+			expect(server.read_frame).to be_a Protocol::HTTP2::HeadersFrame
 			
 			# Get the request stream on the server:
 			server_stream = server.streams[stream.id]
@@ -66,13 +71,14 @@ RSpec.describe Protocol::HTTP2::PushPromiseFrame do
 			# Push a promise back through the stream:
 			promised_stream = server_stream.send_push_promise(push_promise_headers)
 			
-			expect(client).to receive(:receive_push_promise).and_wrap_original do |m, *args| stream, headers = m.call(*args)
+			expect(client).to receive(:receive_push_promise) do |frame|
+				stream, headers = super(frame)
 				
 				expect(stream.id).to be == promised_stream.id
 				expect(headers).to be == push_promise_headers
 			end
 			
-			expect(client.read_frame).to be_kind_of Protocol::HTTP2::PushPromiseFrame
+			expect(client.read_frame).to be_a Protocol::HTTP2::PushPromiseFrame
 		end
 	end
 end

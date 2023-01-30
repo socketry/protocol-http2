@@ -5,6 +5,6 @@
 
 require 'protocol/http2/frame'
 
-RSpec.describe Protocol::HTTP2::Frame do
+describe Protocol::HTTP2::Frame do
 	
 end

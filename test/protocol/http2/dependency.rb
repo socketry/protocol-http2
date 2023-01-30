@@ -1,38 +1,25 @@
-# Copyright, 2018, by Samuel G. D. Williams. <http://www.codeotaku.com>
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# frozen_string_literal: true
 
-require_relative 'connection_context'
+# Released under the MIT License.
+# Copyright, 2020-2023, by Samuel Williams.
 
-RSpec.describe Protocol::HTTP2::Stream do
-	include_context Protocol::HTTP2::Connection
+require 'connection_context'
+
+describe Protocol::HTTP2::Stream do
+	include_context ConnectionContext
 	
-	before do
+	def before
 		client.open!
 		server.open!
+		
+		super
 	end
 	
 	it "can set the priority of a stream" do
 		stream = client.create_stream
 		
 		priority = stream.priority
-		expect(priority.weight).to be 16
+		expect(priority.weight).to be == 16
 		
 		priority.weight = 32
 		
@@ -62,7 +49,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 		
 		expect(a.dependency.children).to be == {b.id => b.dependency}
 		
-		expect(server.dependencies).to include(a.id)
+		expect(server.dependencies).to have_keys(a.id)
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id]}
 		
 		#    a
@@ -133,7 +120,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 		2.times {server.read_frame}
 		
 		# The dependency has been recycled:
-		expect(server.dependencies).to_not include(top.id)
+		expect(server.dependencies).not.to have_keys(top.id)
 		
 		bottom = streams.last
 		
@@ -144,7 +131,7 @@ RSpec.describe Protocol::HTTP2::Stream do
 		
 		1.times {server.read_frame}
 		
-		expect(server.dependencies).to include(bottom.id)
+		expect(server.dependencies).to have_keys(bottom.id)
 		
 		dependency = server.dependencies[bottom.id]
 		expect(dependency.parent).to be == server.dependency

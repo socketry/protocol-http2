@@ -3,8 +3,8 @@
 # Released under the MIT License.
 # Copyright, 2019-2023, by Samuel Williams.
 
-module Protocol
-	module HTTP2
-		VERSION = "0.14.2"
-	end
+require 'protocol/http2/frame'
+
+describe Protocol::HTTP2::Frame do
+	
 end

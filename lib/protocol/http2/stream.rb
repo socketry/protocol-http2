@@ -433,10 +433,6 @@ module Protocol
 			def inspect
 				"\#<#{self.class} id=#{@id} state=#{@state}>"
 			end
-			
-			def to_s
-				inspect
-			end
 		end
 	end
 end

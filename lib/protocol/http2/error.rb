@@ -80,12 +80,6 @@ module Protocol
 			end
 		end
 		
-		class HeaderError < StreamClosed
-			def initialize(message)
-				super(message)
-			end
-		end
-		
 		class GoawayError < ProtocolError
 		end
 		

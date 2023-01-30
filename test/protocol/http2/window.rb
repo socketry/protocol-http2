@@ -74,6 +74,30 @@ describe Protocol::HTTP2::Window do
 		expect(frame.unpack).to be == 120
 	end
 	
+	with '#expand' do
+		it "should expand the window" do
+			expect(client.remote_window.used).to be == 0
+			expect(client.remote_window.capacity).to be == 0xFFFF
+			
+			client.remote_window.expand(100)
+			
+			expect(client.remote_window.used).to be == -100
+			expect(client.remote_window.capacity).to be == 0xFFFF
+		end
+		
+		it "should not expand the window beyond the maximum" do
+			expect(client.remote_window.used).to be == 0
+			expect(client.remote_window.capacity).to be == 0xFFFF
+			
+			expect do
+				client.remote_window.expand(Protocol::HTTP2::MAXIMUM_ALLOWED_WINDOW_SIZE + 1)
+			end.to raise_exception(Protocol::HTTP2::FlowControlError)
+			
+			expect(client.remote_window.used).to be == 0
+			expect(client.remote_window.capacity).to be == 0xFFFF
+		end
+	end
+	
 	with '#receive_window_update' do
 		it "should be invoked when window update is received" do
 			# Write 200 bytes of data (client -> server) which exhausts server local window

@@ -30,6 +30,17 @@ describe Protocol::HTTP2::Stream do
 		expect(server.dependencies[stream.id].weight).to be == 32
 	end
 	
+	it "can't make a stream depend on itself" do
+		stream = client.create_stream
+		
+		priority = stream.priority
+		priority.stream_dependency = stream.id
+		
+		expect do
+			stream.priority = priority
+		end.to raise_exception(Protocol::HTTP2::ProtocolError)
+	end
+	
 	it "can make an exclusive stream" do
 		a, b, c, d = 4.times.collect {client.create_stream}
 		
@@ -49,6 +60,7 @@ describe Protocol::HTTP2::Stream do
 		
 		expect(a.dependency.children).to be == {b.id => b.dependency}
 		
+		expect(a.dependency.total_weight).to be == 16
 		expect(server.dependencies).to have_keys(a.id)
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id]}
 		
@@ -135,5 +147,84 @@ describe Protocol::HTTP2::Stream do
 		
 		dependency = server.dependencies[bottom.id]
 		expect(dependency.parent).to be == server.dependency
+	end
+	
+	it "moves child dependencies into grandparent when parent is removed" do
+		a, b, c, d = 4.times.collect{client.create_stream}
+		a.send_headers(nil, [])
+		b.send_headers(nil, [])
+		c.send_headers(nil, [])
+		d.send_headers(nil, [])
+		4.times{server.read_frame}
+		
+		#    a
+		#   / \
+		#  b   c
+		#      |
+		#      d
+		begin
+			a.priority = a.priority
+			server.read_frame
+			
+			priority = b.priority
+			priority.stream_dependency = a.id
+			b.priority = priority
+			server.read_frame
+			
+			priority = c.priority
+			priority.stream_dependency = a.id
+			c.priority = priority
+			server.read_frame
+			
+			priority = d.priority
+			priority.stream_dependency = c.id
+			d.priority = priority
+			server.read_frame
+		end
+		
+		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], c.id => server.dependencies[c.id]}
+		expect(server.dependencies[c.id].children).to be == {d.id => server.dependencies[d.id]}
+		
+		#    a
+		#   / \
+		#  b   d
+		begin
+			c.send_reset_stream
+			server.read_frame
+		end
+		
+		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], d.id => server.dependencies[d.id]}
+		expect(server.dependencies[c.id]).to be == nil
+	end
+	
+	it "can print a dependency tree" do
+		buffer = StringIO.new
+		a, b, c = 3.times.collect {client.create_stream}
+		
+		#    a
+		#   / \
+		#  b   c
+		begin
+			a.priority = a.priority
+			server.read_frame
+			
+			priority = b.priority
+			priority.stream_dependency = a.id
+			b.priority = priority
+			server.read_frame
+			
+			priority = c.priority
+			priority.stream_dependency = a.id
+			c.priority = priority
+			server.read_frame
+		end
+		
+		a.dependency.print_hierarchy(buffer)
+		
+		expect(buffer.string).to be == <<~END
+			#<Protocol::HTTP2::Dependency id=1 parent id=0 weight=16 2 children>
+				#<Protocol::HTTP2::Dependency id=3 parent id=1 weight=16 0 children>
+				#<Protocol::HTTP2::Dependency id=5 parent id=1 weight=16 0 children>
+		END
 	end
 end

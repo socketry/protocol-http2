@@ -45,13 +45,15 @@ module Protocol
 			end
 			
 			def expand(amount)
+				available = @available + amount
+				
+				if available > MAXIMUM_ALLOWED_WINDOW_SIZE
+					raise FlowControlError, "Expanding window by #{amount} caused overflow: #{available} > #{MAXIMUM_ALLOWED_WINDOW_SIZE}!"
+				end
+				
 				# puts "expand(#{amount}) @available=#{@available}"
 				@available += amount
 				@used -= amount
-				
-				if @available > MAXIMUM_ALLOWED_WINDOW_SIZE
-					raise FlowControlError, "Expanding window by #{amount} caused overflow: #{@available} > #{MAXIMUM_ALLOWED_WINDOW_SIZE}!"
-				end
 			end
 			
 			def wanted
@@ -62,8 +64,8 @@ module Protocol
 				@available < (@capacity / 2)
 			end
 			
-			def to_s
-				"\#<Window used=#{@used} available=#{@available} capacity=#{@capacity}>"
+			def inspect
+				"\#<#{self.class} used=#{@used} available=#{@available} capacity=#{@capacity}>"
 			end
 		end
 		

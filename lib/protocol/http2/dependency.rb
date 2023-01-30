@@ -170,7 +170,7 @@ module Protocol
 			end
 			
 			def total_weight
-				self.orderd_children
+				self.ordered_children
 				
 				return @total_weight
 			end
@@ -203,14 +203,14 @@ module Protocol
 				end
 			end
 			
-			def to_s
+			def inspect
 				"\#<#{self.class} id=#{@id} parent id=#{@parent&.id} weight=#{@weight} #{@children&.size || 0} children>"
 			end
 			
-			def print_hierarchy(buffer, indent: 0)
-				buffer.puts "#{" " * indent}#{self}"
+			def print_hierarchy(output = $stderr, indent: 0)
+				output.puts "#{"\t" * indent}#{self.inspect}"
 				@children&.each_value do |child|
-					child.print_hierarchy(buffer, indent: indent+1)
+					child.print_hierarchy(output, indent: indent+1)
 				end
 			end
 		end

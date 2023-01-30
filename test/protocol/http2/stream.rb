@@ -18,6 +18,10 @@ describe Protocol::HTTP2::Stream do
 	with "idle stream" do
 		let(:stream) {client.create_stream}
 		
+		it "can inspect the stream" do
+			expect(stream.inspect).to be =~ /id=1 state=idle/
+		end
+		
 		it "can send headers" do
 			stream.send_headers(nil, [["foo", "bar"]])
 			

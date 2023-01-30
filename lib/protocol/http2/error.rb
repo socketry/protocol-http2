@@ -90,6 +90,12 @@ module Protocol
 			end
 		end
 		
+		class HeaderError < StreamClosed
+			def initialize(message)
+				super(message)
+			end
+		end
+		
 		# Raised on invalid flow control frame or command.
 		class FlowControlError < ProtocolError
 			def initialize(message)

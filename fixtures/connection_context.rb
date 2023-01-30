@@ -9,7 +9,7 @@ require 'protocol/http2/stream'
 
 require 'socket'
 
-RSpec.shared_context Protocol::HTTP2::Connection do
+ConnectionContext = Sus::Shared("a connection") do
 	let(:sockets) {Socket.pair(Socket::PF_UNIX, Socket::SOCK_STREAM)}
 	
 	let(:client) {Protocol::HTTP2::Client.new(Protocol::HTTP2::Framer.new(sockets.first))}

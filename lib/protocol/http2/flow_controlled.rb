@@ -1,16 +1,7 @@
-# Copyright, 2018, by Samuel G. D. Williams. <http: //www.codeotaku.com>
 # frozen_string_literal: true
 
 # Released under the MIT License.
 # Copyright, 2019-2023, by Samuel Williams.
-# Copyright, 2019, by Yuta Iwama.
-
-# Released under the MIT License.
-# Copyright, 2019-2020, by Samuel Williams.
-# Copyright, 2019, by Yuta Iwama.
-
-# Released under the MIT License.
-# Copyright, 2019-2020, by Samuel Williams.
 # Copyright, 2019, by Yuta Iwama.
 
 require_relative 'window_update_frame'

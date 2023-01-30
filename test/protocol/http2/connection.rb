@@ -1,17 +1,8 @@
-# Copyright, 2018, by Samuel G. D. Williams. <http: //www.codeotaku.com>
 # frozen_string_literal: true
 
 # Released under the MIT License.
 # Copyright, 2019-2023, by Samuel Williams.
 # Copyright, 2023, by Marco Concetto Rudilosso.
-
-# Released under the MIT License.
-# Copyright, 2019-2020, by Samuel Williams.
-# Copyright, 2023, by Marco Concetto Rudilosso.
-
-# Released under the MIT License.
-# Copyright, 2019-2022, by Samuel Williams.
-# Copyright, 2022, by Marco Concetto Rudilosso.
 
 require_relative 'connection_context'
 

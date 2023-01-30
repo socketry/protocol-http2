@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
 	spec.version = Protocol::HTTP2::VERSION
 	
 	spec.summary = "A low level implementation of the HTTP/2 protocol."
-	spec.authors = ["Samuel Williams", "Yuta Iwama", "Olle Jonsson"]
+	spec.authors = ["Samuel Williams", "Yuta Iwama", "Marco Concetto Rudilosso", "Olle Jonsson"]
 	spec.license = "MIT"
 	
 	spec.cert_chain  = ['release.cert']
@@ -15,14 +15,14 @@ Gem::Specification.new do |spec|
 	
 	spec.homepage = "https://github.com/socketry/protocol-http2"
 	
-	spec.files = Dir.glob('{lib}/**/*', File::FNM_DOTMATCH, base: __dir__)
+	spec.files = Dir.glob(['{lib}/**/*', '*.md'], File::FNM_DOTMATCH, base: __dir__)
 	
-	spec.required_ruby_version = ">= 2.5"
+	spec.required_ruby_version = ">= 2.7"
 	
 	spec.add_dependency "protocol-hpack", "~> 1.4"
 	spec.add_dependency "protocol-http", "~> 0.18"
 	
 	spec.add_development_dependency "bundler"
 	spec.add_development_dependency "covered"
-	spec.add_development_dependency "rspec", "~> 3.0"
+	spec.add_development_dependency "sus"
 end

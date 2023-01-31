@@ -28,8 +28,25 @@ describe Protocol::HTTP2::Client do
 		expect(server[stream.id]).to be == stream
 	end
 	
+	it "can optionally support push promises" do
+		expect(server).to be(:enable_push?)
+	end
+	
+	it "cannot accept push promises" do
+		expect do
+			server.accept_push_promise_stream(1)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot accept push promises/)
+	end
+	
 	it "should start in new state" do
 		expect(server.state).to be == :new
+	end
+	
+	it "cannot read connection preface in open state" do
+		server.open!
+		expect do
+			server.read_connection_preface
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot read connection preface in state open/)
 	end
 	
 	it "should receive connection preface followed by settings frame" do

@@ -9,6 +9,10 @@ FrameExamples = Sus::Shared("a frame") do
 	let(:stream) {StringIO.new}
 	let(:frame) {subject.new}
 	
+	it "is a valid frame type" do
+		expect(frame).to be(:valid_type?)
+	end
+	
 	it "can write the frame" do
 		frame.write(stream)
 		

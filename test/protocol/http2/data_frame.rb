@@ -71,6 +71,24 @@ describe Protocol::HTTP2::DataFrame do
 			expect(frame2).to be(:padded?)
 		end
 		
+		it "detects invalid padding" do
+			frame.pack "Hello World!", padding_size: 4
+			
+			expect(frame.length).to be == 16
+			expect(frame.payload[0].ord).to be == 4
+			expect(frame.unpack).to be == "Hello World!"
+			
+			# Artifically set the padding to be the entire payload:
+			frame.payload[0] = (frame.payload.bytesize).chr
+			expect(frame.unpack).to be == ""
+			
+			# Artifically set the padding to be larger than the payload:
+			frame.payload[0] = (frame.payload.bytesize + 1).chr
+			expect do
+				frame.unpack
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid padding length/)
+		end
+		
 		it "can pack end frame" do
 			frame.pack(nil)
 			

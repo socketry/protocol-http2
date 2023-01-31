@@ -29,6 +29,12 @@ module Protocol
 			# When the value of SETTINGS_INITIAL_WINDOW_SIZE changes, a receiver MUST adjust the size of all stream flow-control windows that it maintains by the difference between the new value and the old value.
 			def capacity= value
 				difference = value - @capacity
+				
+				# An endpoint MUST treat a change to SETTINGS_INITIAL_WINDOW_SIZE that causes any flow-control window to exceed the maximum size as a connection error of type FLOW_CONTROL_ERROR.
+				if (@available + difference) > MAXIMUM_ALLOWED_WINDOW_SIZE
+					raise FlowControlError, "Changing window size by #{difference} caused overflow: #{@available + difference} > #{MAXIMUM_ALLOWED_WINDOW_SIZE}!"
+				end
+				
 				@available += difference
 				@capacity = value
 			end

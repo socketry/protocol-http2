@@ -16,6 +16,18 @@ module Protocol
 			MAXIMUM_HEADER_LIST_SIZE = 0x6
 			ENABLE_CONNECT_PROTOCOL = 0x8
 			
+			ASSIGN = [
+				nil,
+				:header_table_size=,
+				:enable_push=,
+				:maximum_concurrent_streams=,
+				:initial_window_size=,
+				:maximum_frame_size=,
+				:maximum_header_list_size=,
+				nil,
+				:enable_connect_protocol=,
+			]
+			
 			# Allows the sender to inform the remote endpoint of the maximum size of the header compression table used to decode header blocks, in octets.
 			attr_accessor :header_table_size
 			
@@ -44,8 +56,7 @@ module Protocol
 				if value <= MAXIMUM_ALLOWED_WINDOW_SIZE
 					@initial_window_size = value
 				else
-					# An endpoint MUST treat a change to SETTINGS_INITIAL_WINDOW_SIZE that causes any flow-control window to exceed the maximum size as a connection error of type FLOW_CONTROL_ERROR.
-					raise FlowControlError, "Invalid value for initial_window_size: #{value} > #{MAXIMUM_ALLOWED_WINDOW_SIZE}"
+					raise ProtocolError, "Invalid value for initial_window_size: #{value} > #{MAXIMUM_ALLOWED_WINDOW_SIZE}"
 				end
 			end
 			
@@ -91,18 +102,6 @@ module Protocol
 				@enable_connect_protocol = 0
 			end
 			
-			ASSIGN = [
-				nil,
-				:header_table_size=,
-				:enable_push=,
-				:maximum_concurrent_streams=,
-				:initial_window_size=,
-				:maximum_frame_size=,
-				:maximum_header_list_size=,
-				nil, nil,
-				:enable_connect_protocol=,
-			]
-			
 			def update(changes)
 				changes.each do |key, value|
 					if name = ASSIGN[key]
@@ -119,7 +118,7 @@ module Protocol
 				end
 				
 				if @enable_push != other.enable_push
-					changes << [ENABLE_PUSH, @enable_push ? 1 : 0]
+					changes << [ENABLE_PUSH, @enable_push]
 				end
 				
 				if @maximum_concurrent_streams != other.maximum_concurrent_streams
@@ -194,6 +193,10 @@ module Protocol
 			
 			def maximum_header_list_size
 				@current.maximum_header_list_size
+			end
+			
+			def enable_connect_protocol
+				@current.enable_connect_protocol
 			end
 		end
 		

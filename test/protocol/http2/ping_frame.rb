@@ -18,6 +18,10 @@ describe Protocol::HTTP2::PingFrame do
 		end
 	end
 	
+	it "applies to the connection" do
+		expect(frame).to be(:connection?)
+	end
+	
 	with '#pack' do
 		it "packs data" do
 			frame.pack data
@@ -31,6 +35,34 @@ describe Protocol::HTTP2::PingFrame do
 			frame.pack data
 			
 			expect(frame.unpack).to be == data
+		end
+	end
+	
+	with '#read_payload' do
+		let(:stream) {StringIO.new([0, 0, 0, 0, 0, 0, 0, 0].pack('C*'))}
+		
+		with 'invalid stream id' do
+			it "raises an error" do
+				frame.stream_id = 1
+				frame.length = 0
+				
+				expect{frame.read_payload(stream)}.to raise_exception(
+					Protocol::HTTP2::ProtocolError,
+					message: be =~ /Settings apply to connection only, but stream_id was given/
+				)
+			end
+		end
+		
+		with 'a length other than 8' do
+			it "raises an error" do
+				frame.stream_id = 0
+				frame.length = 4
+				
+				expect{frame.read_payload(stream)}.to raise_exception(
+					Protocol::HTTP2::ProtocolError,
+					message: be =~ /Invalid frame length/
+				)
+			end
 		end
 	end
 end

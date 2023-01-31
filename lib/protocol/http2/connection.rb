@@ -287,9 +287,10 @@ module Protocol
 			
 			def receive_ping(frame)
 				if @state != :closed
-					if frame.stream_id != 0
-						raise ProtocolError, "Ping received for non-zero stream!"
-					end
+					# This is handled in `read_payload`:
+					# if frame.stream_id != 0
+					# 	raise ProtocolError, "Ping received for non-zero stream!"
+					# end
 					
 					unless frame.acknowledgement?
 						reply = frame.acknowledge

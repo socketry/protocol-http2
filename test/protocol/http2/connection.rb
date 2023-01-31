@@ -115,10 +115,18 @@ describe Protocol::HTTP2::Connection do
 			# Graceful shutdown
 			server.send_goaway(0)
 			
+			another_stream = client.create_stream
+			another_stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
+			
 			expect(client.read_frame).to be_a Protocol::HTTP2::GoawayFrame
 			expect(client.remote_stream_id).to be == 1
 			expect(client).to be(:closed?)
 			
+			# The server will ignore this frame as it was sent after the graceful shutdown:
+			server.read_frame
+			expect(server.streams[another_stream.id]).to be_nil
+			
+			# The pre-existing stream is still functional:
 			expect(server.streams[1].state).to be == :half_closed_remote
 			
 			server.streams[1].send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)

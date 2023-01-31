@@ -53,10 +53,6 @@ module Protocol
 					# This is almost certainly invalid:
 					promised_stream, request_headers = stream.receive_push_promise(frame)
 					
-					if stream.closed?
-						@streams.delete(stream.id)
-					end
-					
 					return promised_stream, request_headers
 				end
 			end

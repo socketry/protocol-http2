@@ -339,6 +339,10 @@ module Protocol
 			# On the client side, we create requests.
 			# @return [Stream] the created stream.
 			def create_stream(id = next_stream_id, &block)
+				if @streams.key?(id)
+					raise ProtocolError, "Cannot create stream with id #{id}, already exists!"
+				end
+				
 				if block_given?
 					return yield(self, id)
 				else

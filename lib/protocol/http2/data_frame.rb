@@ -43,7 +43,7 @@ module Protocol
 			end
 			
 			def inspect
-				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} #{@length}b>"
+				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} #{@length || 0}b>"
 			end
 		end
 	end

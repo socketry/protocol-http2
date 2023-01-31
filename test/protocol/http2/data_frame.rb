@@ -56,6 +56,27 @@ describe Protocol::HTTP2::DataFrame do
 			
 			expect(frame.length).to be == 16
 			expect(frame.payload[0].ord).to be == 4
+			expect(frame.unpack).to be == "Hello World!"
+			
+			stream = StringIO.new
+			frame.write(stream)
+			
+			expect(stream.string.bytesize).to be == 25
+			stream.rewind
+			
+			frame2 = subject.new
+			frame2.read(stream)
+			
+			expect(frame2.unpack).to be == "Hello World!"
+			expect(frame2).to be(:padded?)
+		end
+		
+		it "can pack end frame" do
+			frame.pack(nil)
+			
+			expect(frame.length).to be == 0
+			expect(frame.flags).to be == Protocol::HTTP2::END_STREAM
+			expect(frame).to be(:end_stream?)
 		end
 	end
 	
@@ -64,6 +85,12 @@ describe Protocol::HTTP2::DataFrame do
 			frame.pack "Hello World!"
 			
 			expect(frame.unpack).to be == "Hello World!"
+		end
+	end
+	
+	with '#inspect' do
+		it "can generate a string representation" do
+			expect(frame.inspect).to be =~ /Protocol::HTTP2::DataFrame stream_id=0 flags=0 0b/
 		end
 	end
 end

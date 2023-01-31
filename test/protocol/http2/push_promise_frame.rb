@@ -80,5 +80,27 @@ describe Protocol::HTTP2::PushPromiseFrame do
 			
 			expect(client.read_frame).to be_a Protocol::HTTP2::PushPromiseFrame
 		end
+		
+		it "fails if the same push promise is sent twice" do
+			# Client sends a request:
+			stream.send_headers(nil, request_headers)
+			
+			# Server receives request:
+			expect(server.read_frame).to be_a Protocol::HTTP2::HeadersFrame
+			
+			# Get the request stream on the server:
+			server_stream = server.streams[stream.id]
+			
+			# Push a promise back through the stream:
+			promised_stream = server_stream.send_push_promise(push_promise_headers)
+			
+			push_promise_frame = client.read_frame
+			expect(push_promise_frame).to be_a Protocol::HTTP2::PushPromiseFrame
+			
+			# Force the stream to be sent a 2nd time:
+			expect do
+				push_promise_frame.apply(client)
+			end.to raise_exception(Protocol::HTTP2::Error)
+		end
 	end
 end

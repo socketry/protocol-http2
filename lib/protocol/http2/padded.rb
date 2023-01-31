@@ -47,7 +47,7 @@ module Protocol
 			def unpack
 				if padded?
 					padding_size = @payload[0].ord
-					data_size = (@payload.bytesize - 1) - padding_size
+					data_size = @payload.bytesize - padding_size
 					
 					if data_size < 0
 						raise ProtocolError, "Invalid padding length: #{padding_size}"

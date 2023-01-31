@@ -36,10 +36,10 @@ module Protocol
 			
 			# @param length [Integer] the length of the payload, or nil if the header has not been read yet.
 			def initialize(stream_id = 0, flags = 0, type = self.class::TYPE, length = nil, payload = nil)
-				@length = length
-				@type = type
-				@flags = flags
 				@stream_id = stream_id
+				@flags = flags
+				@type = type
+				@length = length
 				@payload = payload
 			end
 			

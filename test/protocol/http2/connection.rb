@@ -7,13 +7,20 @@
 require 'connection_context'
 
 describe Protocol::HTTP2::Connection do
-	include_context ConnectionContext
+	let(:framer) {nil}
+	let(:connection) {subject.new(framer, 1)}
 	
-	with 'stream id 0' do
-		it "can determine closed streams" do
-			expect(client).not.to be(:closed_stream_id?, 0)
-		end
+	it "reports the connection id 0 is not closed" do
+		expect(connection).not.to be(:closed_stream_id?, 0)
 	end
+	
+	it "does not report any stream_id as being remote" do
+		expect(connection).not.to be(:valid_remote_stream_id?, 1)
+	end
+end
+
+with 'client and server' do
+	include_context ConnectionContext
 	
 	it "can negotiate connection" do
 		first_server_frame = nil
@@ -274,5 +281,33 @@ describe Protocol::HTTP2::Connection do
 		server_stream.send_headers(nil, request_headers)
 
 		expect { client.read_frame }.to raise_exception(Protocol::HTTP2::ProtocolError)
+	end
+	
+	with 'closed client' do
+		def before
+			client.close!
+			
+			super
+		end
+		
+		it "cannot receive settings" do
+			expect do
+				settings_frame = Protocol::HTTP2::SettingsFrame.new
+				client.receive_settings(settings_frame)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot receive settings/)
+		end
+		
+		it "cannot send ping" do
+			expect do
+				client.send_ping("Hello World!")
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot send ping/)
+		end
+		
+		it "cannot receive ping" do
+			expect do
+				ping_frame = Protocol::HTTP2::PingFrame.new
+				client.receive_ping(ping_frame)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot receive ping/)
+		end
 	end
 end

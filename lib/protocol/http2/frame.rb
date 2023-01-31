@@ -115,7 +115,7 @@ module Protocol
 			# @return [String]
 			def header
 				unless VALID_LENGTH.include? @length
-					raise ProtocolError, "Invalid frame size: #{@length.inspect}"
+					raise ProtocolError, "Invalid frame length: #{@length.inspect}"
 				end
 				
 				unless VALID_STREAM_ID.include? @stream_id

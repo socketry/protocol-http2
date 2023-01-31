@@ -8,6 +8,16 @@ require 'protocol/http2/frame'
 describe Protocol::HTTP2::Frame do
 	let(:frame) {subject.new(0, 0, 0)}
 	
+	with '#read_header' do
+		it "can't read a frame header with an empty stream" do
+			buffer = StringIO.new
+			
+			expect do
+				frame.read_header(buffer)
+			end.to raise_exception(EOFError)
+		end
+	end
+	
 	with '#read_payload' do
 		it "can read a frame with payload and matching length" do
 			buffer = StringIO.new("Hello World!")
@@ -16,6 +26,37 @@ describe Protocol::HTTP2::Frame do
 			frame.read_payload(buffer)
 			
 			expect(frame.payload).to be == "Hello World!"
+		end
+		
+		it "can't read a frame with an empty stream" do
+			buffer = StringIO.new
+			
+			frame.length = 1
+			expect do
+				frame.read_payload(buffer)
+			end.to raise_exception(EOFError)
+		end
+	end
+	
+	with '#header' do
+		it "can generate a frame header" do
+			frame.length = 0
+			expect(frame.header).to be == "\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+		end
+		
+		it "can't generate a frame header with an invalid length" do
+			frame.length = 2**24
+			expect do
+				frame.header
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid frame length/)
+		end
+		
+		it "can't generate a frame header with an invalid stream_id" do
+			frame.length = 0
+			frame.stream_id = 2**31
+			expect do
+				frame.header
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid stream identifier/)
 		end
 	end
 	

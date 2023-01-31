@@ -314,7 +314,7 @@ module Protocol
 				end
 			end
 			
-			def valid_remote_stream_id?
+			def valid_remote_stream_id?(stream_id)
 				false
 			end
 			

@@ -18,6 +18,22 @@ describe Protocol::HTTP2::Stream do
 	with "idle stream" do
 		let(:stream) {client.create_stream}
 		
+		it "is not active" do
+			expect(stream).not.to be(:active?)
+		end
+		
+		it "can send headers" do
+			expect(stream).to be(:send_headers?)
+		end
+		
+		it "can't receive stream reset" do
+			frame = Protocol::HTTP2::ResetStreamFrame.new(stream.id)
+			
+			expect do
+				stream.receive_reset_stream(frame)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot receive reset stream/)
+		end
+		
 		it "can inspect the stream" do
 			expect(stream.inspect).to be =~ /id=1 state=idle/
 		end
@@ -66,6 +82,14 @@ describe Protocol::HTTP2::Stream do
 	with "open stream" do
 		let(:stream) {client.create_stream.open!}
 		
+		it "is active" do
+			expect(stream).to be(:active?)
+		end
+		
+		it "can send headers" do
+			expect(stream).to be(:send_headers?)
+		end
+		
 		it "can send data" do
 			stream.send_data("Hello World!")
 			
@@ -90,10 +114,36 @@ describe Protocol::HTTP2::Stream do
 	with "closed stream" do
 		let(:stream) {client.create_stream.close!}
 		
+		it "is not active" do
+			expect(stream).not.to be(:active?)
+		end
+		
+		it "can't send headers" do
+			expect(stream).not.to be(:send_headers?)
+		end
+		
 		it "cannot send reset stream" do
 			expect do
 				stream.send_reset_stream
 			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot send reset stream/)
+		end
+		
+		it "cannot reserve local" do
+			expect do
+				stream.reserved_local!
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot reserve stream/)
+		end
+		
+		it "cannot reserve remote" do
+			expect do
+				stream.reserved_remote!
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot reserve stream/)
+		end
+		
+		it "cannot send push promise" do
+			expect do
+				stream.send_push_promise([])
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot send push promise/)
 		end
 		
 		it "ignores headers" do

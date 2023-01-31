@@ -28,6 +28,7 @@ describe Protocol::HTTP2::Stream do
 		expect(server.read_frame).to be_a Protocol::HTTP2::PriorityFrame
 		
 		expect(server.dependencies[stream.id].weight).to be == 32
+		expect(stream.weight).to be == 32
 	end
 	
 	it "can't make a stream depend on itself" do

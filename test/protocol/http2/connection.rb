@@ -9,6 +9,12 @@ require 'connection_context'
 describe Protocol::HTTP2::Connection do
 	include_context ConnectionContext
 	
+	with 'stream id 0' do
+		it "can determine closed streams" do
+			expect(client).not.to be(:closed_stream_id?, 0)
+		end
+	end
+	
 	it "can negotiate connection" do
 		first_server_frame = nil
 		
@@ -68,6 +74,24 @@ describe Protocol::HTTP2::Connection do
 		
 		let(:request_headers) {[[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]}
 		let(:response_headers) {[[':status', '200']]}
+		
+		it "can determine who initiated stream" do
+			expect(client).to be(:client_stream_id?, stream.id)
+			expect(client).not.to be(:server_stream_id?, stream.id)
+		end
+		
+		it "can determine closed streams" do
+			expect(client).not.to be(:idle_stream_id?, stream.id)
+			expect(server).to be(:idle_stream_id?, stream.id)
+			
+			stream.send_headers(nil, request_headers)
+			
+			server.read_frame
+			
+			# `closed_stream_id?` is true even if the stream is still open. It implies that if the stream is not otherwise open, it is closed.
+			expect(server[stream.id]).not.to be_nil
+			expect(server).to be(:closed_stream_id?, stream.id)
+		end
 		
 		it "can create new stream and send response" do
 			stream.send_headers(nil, request_headers)

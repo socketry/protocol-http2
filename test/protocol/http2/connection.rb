@@ -130,6 +130,22 @@ describe Protocol::HTTP2::Connection do
 			expect(stream.remote_window.used).to be == data_frame.length
 		end
 		
+		it "can update settings while sending response" do
+			stream.send_headers(nil, request_headers)
+			server.read_frame
+			
+			client.send_settings([
+				[Protocol::HTTP2::Settings::INITIAL_WINDOW_SIZE, 100]
+			])
+			
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::SettingsFrame)
+			
+			frame = client.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::SettingsFrame)
+			expect(frame).to be(:acknowledgement?)
+		end
+		
 		it "client can handle graceful shutdown" do
 			stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
 			

@@ -88,4 +88,10 @@ describe Protocol::HTTP2::HeadersFrame do
 			end.to raise_exception(Protocol::HTTP2::GoawayError)
 		end
 	end
+	
+	with '#inspect' do
+		it "can generate a string representation" do
+			expect(frame.inspect).to be =~ /Protocol::HTTP2::HeadersFrame stream_id=0 flags=0 0b/
+		end
+	end
 end

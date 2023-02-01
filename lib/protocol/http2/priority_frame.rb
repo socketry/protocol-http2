@@ -58,10 +58,6 @@ module Protocol
 		class PriorityFrame < Frame
 			TYPE = 0x2
 			
-			def priority
-				Priority.unpack(@payload)
-			end
-			
 			def pack priority
 				super priority.pack
 			end

@@ -6,6 +6,41 @@
 require 'protocol/http2/priority_frame'
 require 'frame_examples'
 
+describe Protocol::HTTP2::Priority do
+	let(:priority) {subject.new}
+	
+	with '.default' do
+		let(:priority) {subject.default}
+		
+		it "has a default weight" do
+			expect(priority.weight).to be == 16
+		end
+	end
+	
+	with '#weight' do
+		it "can be set" do
+			priority.weight = 42
+			expect(priority.weight).to be == 42
+			
+			priority.weight = 1
+			expect(priority.weight).to be == 1
+			
+			priority.weight = 256
+			expect(priority.weight).to be == 256
+		end
+		
+		it "must be in range" do
+			expect do
+				priority.weight = 0
+			end.to raise_exception(ArgumentError)
+			
+			expect do
+				priority.weight = 257
+			end.to raise_exception(ArgumentError)
+		end
+	end
+end
+
 describe Protocol::HTTP2::PriorityFrame do
 	let(:priority) {Protocol::HTTP2::Priority.new(true, 42, 7)}
 	let(:frame) {subject.new}

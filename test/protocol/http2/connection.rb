@@ -7,7 +7,8 @@
 require 'connection_context'
 
 describe Protocol::HTTP2::Connection do
-	let(:framer) {nil}
+	let(:stream) {StringIO.new}
+	let(:framer) {Protocol::HTTP2::Framer.new(stream)}
 	let(:connection) {subject.new(framer, 1)}
 	
 	it "reports the connection id 0 is not closed" do
@@ -32,6 +33,21 @@ describe Protocol::HTTP2::Connection do
 		expect do
 			connection.receive_reset_stream(frame)
 		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot reset connection/)
+	end
+	
+	it "rejects incorrectly encoded headers" do
+		expect(connection).to receive(:valid_remote_stream_id?).and_return(true)
+		
+		invalid_headers_frame = Protocol::HTTP2::HeadersFrame.new(1)
+		invalid_headers_frame.pack(nil, "\xFF")
+		invalid_headers_frame.write(stream)
+		stream.rewind
+		
+		expect(connection).to receive(:send_goaway)
+		
+		expect do
+			connection.read_frame
+		end.to raise_exception(Protocol::HPACK::Error)
 	end
 end
 
@@ -116,6 +132,15 @@ with 'client and server' do
 			expect(server).to be(:closed_stream_id?, stream.id)
 		end
 		
+		with 'server created stream' do
+			let(:stream) {server.create_stream}
+			
+			it "can determine who initiated stream" do
+				expect(client).to be(:idle_stream_id?, stream.id)
+				expect(server).not.to be(:idle_stream_id?, stream.id)
+			end
+		end
+		
 		it "can create new stream and send response" do
 			stream.send_headers(nil, request_headers)
 			expect(stream.id).to be == 1
@@ -167,6 +192,24 @@ with 'client and server' do
 			frame = client.read_frame
 			expect(frame).to be_a(Protocol::HTTP2::SettingsFrame)
 			expect(frame).to be(:acknowledgement?)
+		end
+		
+		it "doesn't accept headers for an existing stream" do
+			stream.send_headers(nil, request_headers)
+			expect(stream.id).to be == 1
+			
+			server.read_frame
+			expect(server.streams).not.to be(:empty?)
+			expect(server.streams[1].state).to be == :open
+			
+			stream.send_headers(nil, request_headers)
+			
+			# Simulate a closed stream:
+			server.streams.clear
+			
+			expect do
+				server.read_frame
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid stream id/)
 		end
 		
 		it "client can handle graceful shutdown" do

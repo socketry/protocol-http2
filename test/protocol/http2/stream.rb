@@ -15,6 +15,23 @@ describe Protocol::HTTP2::Stream do
 		super
 	end
 	
+	it "can create a stream" do
+		stream = client.create_stream
+		expect(stream).to be_a(Protocol::HTTP2::Stream)
+	end
+	
+	it "can create a stream with a block" do
+		stream = client.create_stream do |connection, stream_id|
+			expect(connection).to be_equal(client)
+			expect(stream_id).to be_a(Integer)
+			
+			[connection, stream_id]
+		end
+		
+		expect(stream).to be == [client, 1]
+	end
+	
+	
 	with "idle stream" do
 		let(:stream) {client.create_stream}
 		
@@ -126,6 +143,12 @@ describe Protocol::HTTP2::Stream do
 			expect do
 				stream.send_reset_stream
 			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot send reset stream/)
+		end
+		
+		it "won't accept the same stream" do
+			expect do
+				client.accept_stream(stream.id)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid stream id/)
 		end
 		
 		it "cannot reserve local" do

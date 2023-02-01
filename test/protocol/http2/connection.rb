@@ -17,6 +17,22 @@ describe Protocol::HTTP2::Connection do
 	it "does not report any stream_id as being remote" do
 		expect(connection).not.to be(:valid_remote_stream_id?, 1)
 	end
+	
+	it "can't receive a push promise" do
+		frame = Protocol::HTTP2::PushPromiseFrame.new
+		
+		expect do
+			connection.receive_push_promise(frame)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Unable to receive push promise/)
+	end
+	
+	it "can't receive a stream reset to stream id 0" do
+		frame = Protocol::HTTP2::ResetStreamFrame.new(0)
+		
+		expect do
+			connection.receive_reset_stream(frame)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot reset connection/)
+	end
 end
 
 with 'client and server' do

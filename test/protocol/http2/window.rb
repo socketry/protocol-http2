@@ -104,7 +104,6 @@ describe Protocol::HTTP2::Window do
 			stream.send_data("*" * 200)
 			
 			expect(server.read_frame).to be_a Protocol::HTTP2::DataFrame
-			
 			expect(server.local_window.used).to be == 200
 			expect(client.remote_window.used).to be == 200
 			
@@ -117,6 +116,29 @@ describe Protocol::HTTP2::Window do
 			frame = client.read_frame
 			expect(frame).to be_a Protocol::HTTP2::WindowUpdateFrame
 			expect(frame.unpack).to be == 200
+		end
+		
+		it "should be invoked when window update is received for the connection" do
+			frame = nil
+			
+			(client.available_size / 200).times do
+				stream.send_data("*" * 200)
+				expect(server.read_frame).to be_a Protocol::HTTP2::DataFrame
+				frame = client.read_frame
+				expect(frame).to be_a Protocol::HTTP2::WindowUpdateFrame
+			end
+			
+			expect(client).to receive(:receive_window_update)
+			
+			expect(frame).to be_a(Protocol::HTTP2::WindowUpdateFrame)
+			expect(frame).to be(:connection?) # stream_id = 0
+			
+			frame = client.read_frame
+			expect(frame).to be_a Protocol::HTTP2::WindowUpdateFrame
+			expect(frame).to have_attributes(stream_id: be == stream.id)
+			
+			stream.send_data("*" * 200)
+			expect(server.read_frame).to be_a Protocol::HTTP2::DataFrame
 		end
 	end
 end

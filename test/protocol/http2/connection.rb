@@ -19,7 +19,7 @@ describe Protocol::HTTP2::Connection do
 		expect(connection).not.to be(:valid_remote_stream_id?, 1)
 	end
 	
-	it "can't receive a push promise" do
+	it "rejects a push promise" do
 		frame = Protocol::HTTP2::PushPromiseFrame.new
 		
 		expect do
@@ -27,12 +27,28 @@ describe Protocol::HTTP2::Connection do
 		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Unable to receive push promise/)
 	end
 	
-	it "can't receive a stream reset to stream id 0" do
+	it "rejects a stream reset to stream id 0" do
 		frame = Protocol::HTTP2::ResetStreamFrame.new(0)
 		
 		expect do
 			connection.receive_reset_stream(frame)
 		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot reset connection/)
+	end
+	
+	it "rejects headers to stream id 0" do
+		frame = Protocol::HTTP2::HeadersFrame.new(0)
+		
+		expect do
+			connection.receive_headers(frame)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot receive headers for stream 0/)
+	end
+	
+	it "rejects continuation" do
+		frame = Protocol::HTTP2::ContinuationFrame.new(1)
+		
+		expect do
+			connection.receive_continuation(frame)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Received unexpected continuation/)
 	end
 	
 	it "rejects incorrectly encoded headers" do

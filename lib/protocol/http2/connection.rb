@@ -41,7 +41,7 @@ module Protocol
 				@decoder = HPACK::Context.new
 				@encoder = HPACK::Context.new
 				
-				@local_window = LocalWindow.new
+				@local_window = LocalWindow.new()
 				@remote_window = Window.new
 			end
 			

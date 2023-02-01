@@ -95,7 +95,11 @@ module Protocol
 			end
 			
 			def limited?
-				@available < ((@desired || @capacity) / 2)
+				if @desired
+					@available < @desired
+				else
+					super
+				end
 			end
 		end
 		

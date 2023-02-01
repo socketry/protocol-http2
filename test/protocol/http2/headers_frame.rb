@@ -47,12 +47,58 @@ describe Protocol::HTTP2::HeadersFrame do
 	end
 	
 	with '#continuation' do
-		it "generates chain of frames" do
+		let(:stream) {StringIO.new}
+		
+		def before
 			frame.pack nil, "Hello World", maximum_size: 8
+			
+			super
+		end
+		
+		it "generates chain of frames" do
+			expect(frame).to be(:continued?)
+			expect(frame.continuation).to be(:end_headers?)
 			
 			expect(frame.length).to be == 8
 			expect(frame.continuation).not.to be_nil
 			expect(frame.continuation.length).to be == 3
+		end
+		
+		it "can read and write continuation frames" do
+			frame.write(stream)
+			stream.rewind
+			
+			frame2 = subject.new
+			frame2.read(stream, 128)
+			
+			expect(frame).to be(:continued?)
+			expect(frame.continuation).to be(:end_headers?)
+			
+			expect(frame.length).to be == 8
+			expect(frame.continuation).not.to be_nil
+			expect(frame.continuation.length).to be == 3
+		end
+		
+		it "fails if the stream id of the continuation doesn't match" do
+			frame.continuation.stream_id = frame.stream_id+1
+			frame.write(stream)
+			stream.rewind
+			
+			frame2 = subject.new
+			expect do
+				frame2.read(stream, 128)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid stream id/)
+		end
+		
+		it "fails if the frame type of the continuation doesn't match" do
+			frame.continuation.type = frame.type+1
+			frame.write(stream)
+			stream.rewind
+			
+			frame2 = subject.new
+			expect do
+				frame2.read(stream, 128)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid frame type/)
 		end
 	end
 	

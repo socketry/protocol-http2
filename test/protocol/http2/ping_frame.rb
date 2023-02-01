@@ -59,7 +59,7 @@ describe Protocol::HTTP2::PingFrame do
 				frame.length = 4
 				
 				expect{frame.read_payload(stream)}.to raise_exception(
-					Protocol::HTTP2::ProtocolError,
+					Protocol::HTTP2::FrameSizeError,
 					message: be =~ /Invalid frame length/
 				)
 			end

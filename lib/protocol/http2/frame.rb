@@ -201,7 +201,7 @@ module Protocol
 			end
 			
 			def inspect
-				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} #{self.unpack}>"
+				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} payload=#{self.unpack}>"
 			end
 		end
 	end

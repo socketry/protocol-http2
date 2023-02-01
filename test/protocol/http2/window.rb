@@ -140,5 +140,26 @@ describe Protocol::HTTP2::Window do
 			stream.send_data("*" * 200)
 			expect(server.read_frame).to be_a Protocol::HTTP2::DataFrame
 		end
+		
+		it "should send stream reset if window update is invalid" do
+			window_update_frame = Protocol::HTTP2::WindowUpdateFrame.new(stream.id)
+			window_update_frame.pack(0)
+			
+			server.write_frame(window_update_frame)
+			
+			expect(stream).to receive(:send_reset_stream)
+			client.read_frame
+		end
+		
+		it "should fail when window update is received for an idle stream" do
+			window_update_frame = Protocol::HTTP2::WindowUpdateFrame.new(stream.id+2)
+			window_update_frame.pack(100)
+			
+			server.write_frame(window_update_frame)
+			
+			expect do
+				frame = client.read_frame
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot update window of idle stream/)
+		end
 	end
 end

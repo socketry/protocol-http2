@@ -4,6 +4,7 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/window_update_frame'
+require 'connection_context'
 require 'frame_examples'
 
 describe Protocol::HTTP2::WindowUpdateFrame do
@@ -79,6 +80,34 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 			expect(server.read_frame).to be_a Protocol::HTTP2::HeadersFrame
 			
 			super
+		end
+		
+		it "can determine available frame size" do
+			expect(client.available_frame_size).to be == 16384
+			expect(server.available_frame_size).to be == 16384
+			
+			# Fake the maximum frame size:
+			maximum_frame_size = server.available_size + 1
+			expect(server.available_frame_size(maximum_frame_size)).to be == server.available_size
+			
+			expect(stream.maximum_frame_size).to be == 16384
+		end
+		
+		it "can consume data frames" do
+			frame = Protocol::HTTP2::DataFrame.new
+			frame.length = client.available_size
+			
+			client.consume_remote_window(frame)
+			expect(client.available_size).to be == 0
+		end
+		
+		it "fails if it tries to consume more than the available window" do
+			frame = Protocol::HTTP2::DataFrame.new
+			frame.length = client.available_size + 1
+			
+			expect do
+				client.consume_remote_window(frame)
+			end.to raise_exception(Protocol::HTTP2::FlowControlError, message: be =~ /exceeded window size/)
 		end
 		
 		it "should assign capacity according to settings" do

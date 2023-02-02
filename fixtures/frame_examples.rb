@@ -9,7 +9,11 @@ FrameExamples = Sus::Shared("a frame") do
 	let(:stream) {StringIO.new}
 	let(:frame) {subject.new}
 	
-	it "can write frame" do
+	it "is a valid frame type" do
+		expect(frame).to be(:valid_type?)
+	end
+	
+	it "can write the frame" do
 		frame.write(stream)
 		
 		expect(stream.string).not.to be(:empty?)
@@ -17,7 +21,7 @@ FrameExamples = Sus::Shared("a frame") do
 	
 	let(:framer) {Protocol::HTTP2::Framer.new(stream, {subject::TYPE => subject})}
 	
-	it "can read frame using framer" do
+	it "can read the frame using framer" do
 		frame.write(stream)
 		stream.seek(0)
 		

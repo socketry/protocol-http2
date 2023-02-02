@@ -18,6 +18,10 @@ describe Protocol::HTTP2::GoawayFrame do
 		end
 	end
 	
+	it "applies to the connection" do
+		expect(frame).to be(:connection?)
+	end
+	
 	with '#pack' do
 		it "packs data" do
 			frame.pack 3, 2, data

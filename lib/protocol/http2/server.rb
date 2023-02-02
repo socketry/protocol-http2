@@ -34,7 +34,7 @@ module Protocol
 						raise ProtocolError, "First frame must be #{SettingsFrame}, but got #{frame.class}" unless frame.is_a? SettingsFrame
 					end
 				else
-					raise ProtocolError, "Cannot send connection preface in state #{@state}"
+					raise ProtocolError, "Cannot read connection preface in state #{@state}"
 				end
 			end
 			

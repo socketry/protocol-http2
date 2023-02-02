@@ -80,12 +80,6 @@ module Protocol
 			end
 		end
 		
-		class HeaderError < StreamClosed
-			def initialize(message)
-				super(message)
-			end
-		end
-		
 		class GoawayError < ProtocolError
 		end
 		
@@ -93,6 +87,12 @@ module Protocol
 		class FrameSizeError < ProtocolError
 			def initialize(message)
 				super message, FRAME_SIZE_ERROR
+			end
+		end
+		
+		class HeaderError < StreamClosed
+			def initialize(message)
+				super(message)
 			end
 		end
 		

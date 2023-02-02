@@ -41,7 +41,7 @@ module Protocol
 				@decoder = HPACK::Context.new
 				@encoder = HPACK::Context.new
 				
-				@local_window = LocalWindow.new
+				@local_window = LocalWindow.new()
 				@remote_window = Window.new
 			end
 			
@@ -287,9 +287,10 @@ module Protocol
 			
 			def receive_ping(frame)
 				if @state != :closed
-					if frame.stream_id != 0
-						raise ProtocolError, "Ping received for non-zero stream!"
-					end
+					# This is handled in `read_payload`:
+					# if frame.stream_id != 0
+					# 	raise ProtocolError, "Ping received for non-zero stream!"
+					# end
 					
 					unless frame.acknowledgement?
 						reply = frame.acknowledge
@@ -313,7 +314,7 @@ module Protocol
 				end
 			end
 			
-			def valid_remote_stream_id?
+			def valid_remote_stream_id?(stream_id)
 				false
 			end
 			
@@ -338,6 +339,10 @@ module Protocol
 			# On the client side, we create requests.
 			# @return [Stream] the created stream.
 			def create_stream(id = next_stream_id, &block)
+				if @streams.key?(id)
+					raise ProtocolError, "Cannot create stream with id #{id}, already exists!"
+				end
+				
 				if block_given?
 					return yield(self, id)
 				else
@@ -382,24 +387,6 @@ module Protocol
 				write_frame(frame)
 			end
 			
-			def idle_stream_id?(id)
-				if id.even?
-					# Server-initiated streams are even.
-					if @local_stream_id.even?
-						id >= @local_stream_id
-					else
-						id > @remote_stream_id
-					end
-				elsif id.odd?
-					# Client-initiated streams are odd.
-					if @local_stream_id.odd?
-						id >= @local_stream_id
-					else
-						id > @remote_stream_id
-					end
-				end
-			end
-			
 			# Sets the priority for an incoming stream.
 			def receive_priority(frame)
 				if dependency = @dependencies[frame.stream_id]
@@ -421,24 +408,31 @@ module Protocol
 				id.even?
 			end
 			
-			def closed_stream_id?(id)
-				if id.zero?
-					# The connection "stream id" can never be closed:
-					false
-				elsif id.even?
+			def idle_stream_id?(id)
+				if id.even?
 					# Server-initiated streams are even.
 					if @local_stream_id.even?
-						id < @local_stream_id
+						id >= @local_stream_id
 					else
-						id <= @remote_stream_id
+						id > @remote_stream_id
 					end
 				elsif id.odd?
 					# Client-initiated streams are odd.
 					if @local_stream_id.odd?
-						id < @local_stream_id
+						id >= @local_stream_id
 					else
-						id <= @remote_stream_id
+						id > @remote_stream_id
 					end
+				end
+			end
+			
+			# This is only valid if the stream doesn't exist in `@streams`.
+			def closed_stream_id?(id)
+				if id.zero?
+					# The connection "stream id" can never be closed:
+					false
+				else
+					!idle_stream_id?(id)
 				end
 			end
 			

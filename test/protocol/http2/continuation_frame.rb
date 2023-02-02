@@ -45,4 +45,21 @@ describe Protocol::HTTP2::ContinuationFrame do
 			expect(frame.unpack).to be == data
 		end
 	end
+	
+	with '#apply' do
+		let(:connection) {Protocol::HTTP2::Connection.new(nil, 0)}
+		
+		it "applies the frame to a connection" do
+			expect(connection).to receive(:receive_continuation).and_return(true)
+			
+			frame.pack data
+			frame.apply(connection)
+		end
+	end
+	
+	with '#inspect' do
+		it "can generate a string representation" do
+			expect(frame.inspect).to be =~ /stream_id=0 flags=0 length=0/
+		end
+	end
 end

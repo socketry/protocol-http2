@@ -18,8 +18,35 @@ describe Protocol::HTTP2::Client do
 		[[Protocol::HTTP2::Settings::HEADER_TABLE_SIZE, 2048]]
 	end
 	
+	it "has an id of 0" do
+		expect(server.id).to be == 0
+		expect(server[0]).to be == server
+	end
+	
+	it "can lookup stream by id" do
+		stream = server.create_stream
+		expect(server[stream.id]).to be == stream
+	end
+	
+	it "can optionally support push promises" do
+		expect(server).to be(:enable_push?)
+	end
+	
+	it "cannot accept push promises" do
+		expect do
+			server.accept_push_promise_stream(1)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot accept push promises/)
+	end
+	
 	it "should start in new state" do
 		expect(server.state).to be == :new
+	end
+	
+	it "cannot read connection preface in open state" do
+		server.open!
+		expect do
+			server.read_connection_preface
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot read connection preface in state open/)
 	end
 	
 	it "should receive connection preface followed by settings frame" do
@@ -52,5 +79,13 @@ describe Protocol::HTTP2::Client do
 		server.read_frame
 		
 		expect(server.state).to be == :open
+	end
+	
+	it "can generate a stream id" do
+		id = server.next_stream_id
+		expect(id).to be == 2
+		
+		expect(server).to be(:local_stream_id?, id)
+		expect(server).not.to be(:remote_stream_id?, id)
 	end
 end

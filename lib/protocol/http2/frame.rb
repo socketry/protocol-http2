@@ -31,12 +31,15 @@ module Protocol
 			LENGTH_HISHIFT = 16
 			LENGTH_LOMASK  = 0xFFFF
 			
+			# The base class does not have any specific type index:
+			TYPE = nil
+			
 			# @param length [Integer] the length of the payload, or nil if the header has not been read yet.
 			def initialize(stream_id = 0, flags = 0, type = self.class::TYPE, length = nil, payload = nil)
-				@length = length
-				@type = type
-				@flags = flags
 				@stream_id = stream_id
+				@flags = flags
+				@type = type
+				@length = length
 				@payload = payload
 			end
 			
@@ -79,7 +82,7 @@ module Protocol
 				@length = payload.bytesize
 				
 				if maximum_size and @length > maximum_size
-					raise ProtocolError, "Frame length #{@length} bigger than maximum allowed: #{maximum_size}"
+					raise ProtocolError, "Frame length bigger than maximum allowed: #{@length} > #{maximum_size}"
 				end
 			end
 			
@@ -112,7 +115,7 @@ module Protocol
 			# @return [String]
 			def header
 				unless VALID_LENGTH.include? @length
-					raise ProtocolError, "Invalid frame size: #{@length.inspect}"
+					raise ProtocolError, "Invalid frame length: #{@length.inspect}"
 				end
 				
 				unless VALID_STREAM_ID.include? @stream_id
@@ -178,8 +181,15 @@ module Protocol
 			end
 			
 			def write(stream)
-				if @payload and @length != @payload.bytesize
-					raise ProtocolError, "Invalid payload size: #{@length} != #{@payload.bytesize}"
+				# Validate the payload size:
+				if @payload.nil?
+					if @length != 0
+						raise ProtocolError, "Invalid frame length: #{@length} != 0"
+					end
+				else
+					if @length != @payload.bytesize
+						raise ProtocolError, "Invalid payload size: #{@length} != #{@payload.bytesize}"
+					end
 				end
 				
 				self.write_header(stream)
@@ -191,7 +201,7 @@ module Protocol
 			end
 			
 			def inspect
-				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} #{self.unpack}>"
+				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} payload=#{self.unpack}>"
 			end
 		end
 	end

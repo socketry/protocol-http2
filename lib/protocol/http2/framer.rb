@@ -33,7 +33,7 @@ module Protocol
 		].freeze
 		
 		# Default connection "fast-fail" preamble string as defined by the spec.
-		CONNECTION_PREFACE_MAGIC = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".freeze
+		CONNECTION_PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".freeze
 		
 		class Framer
 			def initialize(stream, frames = FRAMES)
@@ -50,13 +50,13 @@ module Protocol
 			end
 			
 			def write_connection_preface
-				@stream.write(CONNECTION_PREFACE_MAGIC)
+				@stream.write(CONNECTION_PREFACE)
 			end
 			
 			def read_connection_preface
-				string = @stream.read(CONNECTION_PREFACE_MAGIC.bytesize)
+				string = @stream.read(CONNECTION_PREFACE.bytesize)
 				
-				unless string == CONNECTION_PREFACE_MAGIC
+				unless string == CONNECTION_PREFACE
 					raise HandshakeError, "Invalid connection preface: #{string.inspect}"
 				end
 				

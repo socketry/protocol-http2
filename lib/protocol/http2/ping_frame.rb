@@ -14,6 +14,10 @@ module Protocol
 				flag_set?(ACKNOWLEDGEMENT)
 			end
 			
+			def acknowledgement!
+				set_flags(ACKNOWLEDGEMENT)
+			end
+			
 			def acknowledge
 				frame = self.class.new
 				
@@ -55,6 +59,10 @@ module Protocol
 			
 			def read_payload(stream)
 				super
+				
+				if @stream_id != 0
+					raise ProtocolError, "Settings apply to connection only, but stream_id was given"
+				end
 				
 				if @length != 8
 					raise FrameSizeError, "Invalid frame length: #{@length} != 8!"

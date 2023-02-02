@@ -7,6 +7,67 @@
 require 'connection_context'
 
 describe Protocol::HTTP2::Connection do
+	let(:stream) {StringIO.new}
+	let(:framer) {Protocol::HTTP2::Framer.new(stream)}
+	let(:connection) {subject.new(framer, 1)}
+	
+	it "reports the connection id 0 is not closed" do
+		expect(connection).not.to be(:closed_stream_id?, 0)
+	end
+	
+	it "does not report any stream_id as being remote" do
+		expect(connection).not.to be(:valid_remote_stream_id?, 1)
+	end
+	
+	it "rejects a push promise" do
+		frame = Protocol::HTTP2::PushPromiseFrame.new
+		
+		expect do
+			connection.receive_push_promise(frame)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Unable to receive push promise/)
+	end
+	
+	it "rejects a stream reset to stream id 0" do
+		frame = Protocol::HTTP2::ResetStreamFrame.new(0)
+		
+		expect do
+			connection.receive_reset_stream(frame)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot reset connection/)
+	end
+	
+	it "rejects headers to stream id 0" do
+		frame = Protocol::HTTP2::HeadersFrame.new(0)
+		
+		expect do
+			connection.receive_headers(frame)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot receive headers for stream 0/)
+	end
+	
+	it "rejects continuation" do
+		frame = Protocol::HTTP2::ContinuationFrame.new(1)
+		
+		expect do
+			connection.receive_continuation(frame)
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Received unexpected continuation/)
+	end
+	
+	it "rejects incorrectly encoded headers" do
+		expect(connection).to receive(:valid_remote_stream_id?).and_return(true)
+		
+		invalid_headers_frame = Protocol::HTTP2::HeadersFrame.new(1)
+		invalid_headers_frame.pack(nil, "\xFF")
+		invalid_headers_frame.write(stream)
+		stream.rewind
+		
+		expect(connection).to receive(:send_goaway)
+		
+		expect do
+			connection.read_frame
+		end.to raise_exception(Protocol::HPACK::Error)
+	end
+end
+
+with 'client and server' do
 	include_context ConnectionContext
 	
 	it "can negotiate connection" do
@@ -69,6 +130,33 @@ describe Protocol::HTTP2::Connection do
 		let(:request_headers) {[[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]}
 		let(:response_headers) {[[':status', '200']]}
 		
+		it "can determine who initiated stream" do
+			expect(client).to be(:client_stream_id?, stream.id)
+			expect(client).not.to be(:server_stream_id?, stream.id)
+		end
+		
+		it "can determine closed streams" do
+			expect(client).not.to be(:idle_stream_id?, stream.id)
+			expect(server).to be(:idle_stream_id?, stream.id)
+			
+			stream.send_headers(nil, request_headers)
+			
+			server.read_frame
+			
+			# `closed_stream_id?` is true even if the stream is still open. It implies that if the stream is not otherwise open, it is closed.
+			expect(server[stream.id]).not.to be_nil
+			expect(server).to be(:closed_stream_id?, stream.id)
+		end
+		
+		with 'server created stream' do
+			let(:stream) {server.create_stream}
+			
+			it "can determine who initiated stream" do
+				expect(client).to be(:idle_stream_id?, stream.id)
+				expect(server).not.to be(:idle_stream_id?, stream.id)
+			end
+		end
+		
 		it "can create new stream and send response" do
 			stream.send_headers(nil, request_headers)
 			expect(stream.id).to be == 1
@@ -106,6 +194,40 @@ describe Protocol::HTTP2::Connection do
 			expect(stream.remote_window.used).to be == data_frame.length
 		end
 		
+		it "can update settings while sending response" do
+			stream.send_headers(nil, request_headers)
+			server.read_frame
+			
+			client.send_settings([
+				[Protocol::HTTP2::Settings::INITIAL_WINDOW_SIZE, 100]
+			])
+			
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::SettingsFrame)
+			
+			frame = client.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::SettingsFrame)
+			expect(frame).to be(:acknowledgement?)
+		end
+		
+		it "doesn't accept headers for an existing stream" do
+			stream.send_headers(nil, request_headers)
+			expect(stream.id).to be == 1
+			
+			server.read_frame
+			expect(server.streams).not.to be(:empty?)
+			expect(server.streams[1].state).to be == :open
+			
+			stream.send_headers(nil, request_headers)
+			
+			# Simulate a closed stream:
+			server.streams.clear
+			
+			expect do
+				server.read_frame
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid stream id/)
+		end
+		
 		it "client can handle graceful shutdown" do
 			stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
 			
@@ -115,10 +237,18 @@ describe Protocol::HTTP2::Connection do
 			# Graceful shutdown
 			server.send_goaway(0)
 			
+			another_stream = client.create_stream
+			another_stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
+			
 			expect(client.read_frame).to be_a Protocol::HTTP2::GoawayFrame
 			expect(client.remote_stream_id).to be == 1
 			expect(client).to be(:closed?)
 			
+			# The server will ignore this frame as it was sent after the graceful shutdown:
+			server.read_frame
+			expect(server.streams[another_stream.id]).to be_nil
+			
+			# The pre-existing stream is still functional:
 			expect(server.streams[1].state).to be == :half_closed_remote
 			
 			server.streams[1].send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)
@@ -226,5 +356,33 @@ describe Protocol::HTTP2::Connection do
 		server_stream.send_headers(nil, request_headers)
 
 		expect { client.read_frame }.to raise_exception(Protocol::HTTP2::ProtocolError)
+	end
+	
+	with 'closed client' do
+		def before
+			client.close!
+			
+			super
+		end
+		
+		it "cannot receive settings" do
+			expect do
+				settings_frame = Protocol::HTTP2::SettingsFrame.new
+				client.receive_settings(settings_frame)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot receive settings/)
+		end
+		
+		it "cannot send ping" do
+			expect do
+				client.send_ping("Hello World!")
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot send ping/)
+		end
+		
+		it "cannot receive ping" do
+			expect do
+				ping_frame = Protocol::HTTP2::PingFrame.new
+				client.receive_ping(ping_frame)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot receive ping/)
+		end
 	end
 end

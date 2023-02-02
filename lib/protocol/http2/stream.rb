@@ -411,8 +411,10 @@ module Protocol
 					promised_stream = self.create_push_promise_stream(headers)
 					promised_stream.reserved_local!
 					
+					# The headers are the same as if the client had sent a request:
 					write_push_promise(promised_stream.id, headers)
 					
+					# The server should call send_headers on the promised stream to begin sending the response:
 					return promised_stream
 				else
 					raise ProtocolError, "Cannot send push promise in state: #{@state}"

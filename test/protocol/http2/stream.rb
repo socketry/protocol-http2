@@ -57,11 +57,36 @@ describe Protocol::HTTP2::Stream do
 		it "can send headers" do
 			stream.send_headers(nil, [["foo", "bar"]])
 			
+			# Pre-create the stream in idle state:
+			server_stream = server.create_stream(stream.id)
+			
+			expect(server_stream).to receive(:receive_headers)
+			
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::HeadersFrame)
+			expect(frame).not.to be(:end_stream?)
+		end
+		
+		it "can send request and read response" do
+			stream.send_headers(nil, [["foo", "bar"]], Protocol::HTTP2::END_STREAM)
+			
 			server_stream = server.create_stream(stream.id)
 			
 			expect(server_stream).to receive(:receive_headers)
 			
 			server.read_frame
+			
+			expect(server_stream.state).to be == :half_closed_remote
+			
+			server_stream.send_headers(nil, [[":status", "200"]])
+			frame = client.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::HeadersFrame)
+			expect(frame).not.to be(:end_stream?)
+			
+			server_stream.send_data("Hello World!", Protocol::HTTP2::END_STREAM)
+			frame = client.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::DataFrame)
+			expect(frame).to be(:end_stream?)
 		end
 		
 		it "cannot send data" do
@@ -127,10 +152,22 @@ describe Protocol::HTTP2::Stream do
 			server.read_frame
 		end
 		
-		it "can send trailers" do
+		it "can send request trailers" do
 			stream.send_headers(nil, [["foo", "bar"]], Protocol::HTTP2::END_STREAM)
 			
-			expect(stream.state).to be == :half_closed_local
+			expect(server_stream).to receive(:receive_headers)
+			server.read_frame
+			
+			expect(server_stream.state).to be == :half_closed_remote
+		end
+		
+		it "can send response and end stream" do
+			server_stream.send_headers(nil, [["foo", "bar"]], Protocol::HTTP2::END_STREAM)
+			
+			expect(stream).to receive(:receive_headers)
+			client.read_frame
+			
+			expect(stream.state).to be == :half_closed_remote
 		end
 		
 		it "can't be opened (again)" do
@@ -174,12 +211,62 @@ describe Protocol::HTTP2::Stream do
 	end
 	
 	with "pushed stream" do
-		let(:stream) {server.create_stream.reserved_local!}
-		let(:headers) {[[':method', 'GET'], [':path', '/'], [':scheme', 'https'], [':authority', 'example.com']]}
+		let(:origin_stream) {client.create_stream}
+		let(:server_stream) {server[origin_stream.id]}
 		
-		it "can send headers" do
-			stream.send_headers(nil, headers)
-			expect(stream.state).to be == :half_closed_remote
+		let(:promised_stream) {@promised_stream}
+		let(:stream) {client[@pushed_stream_id]}
+		let(:headers) {[[':method', 'GET'], [':path', '/'], [':scheme', 'https'], [':authority', 'example.com']]}
+		let(:response_headers) {[[':status', '200']]}
+		
+		def before
+			origin_stream.send_headers(nil, headers)
+			server.read_frame
+			
+			@promised_stream = server_stream.send_push_promise(headers)
+			frame = client.read_frame
+			
+			@pushed_stream_id, data = frame.unpack
+			
+			super
+		end
+		
+		it "can't send headers" do
+			expect(stream).not.to be(:send_headers?)
+			
+			expect do
+				stream.send_headers(nil, [["foo", "bar"]])
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot send headers in state: reserved_remote/)
+		end
+		
+		it "receives stream reset when writing headers in invalid state" do
+			stream.state = :open
+			
+			stream.send_headers(nil, [["foo", "bar"]])
+			frame = server.read_frame
+				
+			frame = client.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::ResetStreamFrame)
+		end
+		
+		it "receives stream reset when writing data in invalid state" do
+			stream.state = :open
+			
+			stream.send_data("Hello World!")
+			frame = server.read_frame
+			
+			frame = client.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::ResetStreamFrame)
+		end
+		
+		it "can send response and end stream" do
+			promised_stream.send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)
+			expect(promised_stream.state).to be == :half_closed_remote
+			
+			expect(stream).to receive(:receive_headers)
+			client.read_frame
+			
+			expect(stream.state).to be == :half_closed_local
 		end
 	end
 	

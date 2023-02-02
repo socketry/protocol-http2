@@ -134,6 +134,7 @@ module Protocol
 				end
 			end
 			
+			# HEADERS frames can be sent on a stream in the "idle", "reserved (local)", "open", or "half-closed (remote)" state. Despite it's name, it can also be used for trailers.
 			def send_headers?
 				@state == :idle or @state == :reserved_local or @state == :open or @state == :half_closed_remote
 			end
@@ -384,6 +385,8 @@ module Protocol
 				else
 					raise ProtocolError, "Cannot reserve stream in state: #{@state}"
 				end
+				
+				return self
 			end
 			
 			def reserved_remote!
@@ -392,6 +395,8 @@ module Protocol
 				else
 					raise ProtocolError, "Cannot reserve stream in state: #{@state}"
 				end
+				
+				return self
 			end
 			
 			# Override this function to implement your own push promise logic.

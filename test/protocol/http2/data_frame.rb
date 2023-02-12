@@ -54,14 +54,14 @@ describe Protocol::HTTP2::DataFrame do
 		it "adds appropriate padding" do
 			frame.pack "Hello World!", padding_size: 4
 			
-			expect(frame.length).to be == 16
+			expect(frame.length).to be == 17
 			expect(frame.payload[0].ord).to be == 4
 			expect(frame.unpack).to be == "Hello World!"
 			
 			stream = StringIO.new
 			frame.write(stream)
 			
-			expect(stream.string.bytesize).to be == 25
+			expect(stream.string.bytesize).to be == 26
 			stream.rewind
 			
 			frame2 = subject.new
@@ -74,12 +74,12 @@ describe Protocol::HTTP2::DataFrame do
 		it "detects invalid padding" do
 			frame.pack "Hello World!", padding_size: 4
 			
-			expect(frame.length).to be == 16
+			expect(frame.length).to be == 17
 			expect(frame.payload[0].ord).to be == 4
 			expect(frame.unpack).to be == "Hello World!"
 			
 			# Artifically set the padding to be the entire payload:
-			frame.payload[0] = (frame.payload.bytesize).chr
+			frame.payload[0] = (frame.payload.bytesize - 1).chr
 			expect(frame.unpack).to be == ""
 			
 			# Artifically set the padding to be larger than the payload:

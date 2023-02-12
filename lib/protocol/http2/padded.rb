@@ -29,11 +29,11 @@ module Protocol
 					
 					buffer = String.new.b
 					
-					buffer << padding_size.chr
+					buffer << padding_size
 					buffer << data
 					
-					if padding_size > 1
-						buffer << "\0" * (padding_size - 1)
+					if padding_size
+						buffer << ("\0" * padding_size)
 					end
 					
 					super buffer
@@ -47,7 +47,9 @@ module Protocol
 			def unpack
 				if padded?
 					padding_size = @payload[0].ord
-					data_size = @payload.bytesize - padding_size
+					
+					# 1 byte for the padding octet, and padding_size bytes for the padding itself:
+					data_size = @payload.bytesize - (1 + padding_size)
 					
 					if data_size < 0
 						raise ProtocolError, "Invalid padding length: #{padding_size}"

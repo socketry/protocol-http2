@@ -101,6 +101,7 @@ module Protocol
 				@streams.each_value{|stream| stream.close(error)}
 				@streams.clear
 				
+			ensure
 				if @framer
 					@framer.close
 					@framer = nil

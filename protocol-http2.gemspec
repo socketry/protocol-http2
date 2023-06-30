@@ -17,12 +17,8 @@ Gem::Specification.new do |spec|
 	
 	spec.files = Dir.glob(['{lib}/**/*', '*.md'], File::FNM_DOTMATCH, base: __dir__)
 	
-	spec.required_ruby_version = ">= 2.7"
+	spec.required_ruby_version = ">= 2.7.6"
 	
 	spec.add_dependency "protocol-hpack", "~> 1.4"
 	spec.add_dependency "protocol-http", "~> 0.18"
-	
-	spec.add_development_dependency "bundler"
-	spec.add_development_dependency "covered"
-	spec.add_development_dependency "sus"
 end

@@ -95,7 +95,7 @@ module Protocol
 			end
 			
 			def read_header
-				if buffer = @stream.read(9)
+				if buffer = @stream.peek(9)
 					if buffer.bytesize == 9
 						return Frame.parse_header(buffer)
 					end

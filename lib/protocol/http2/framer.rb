@@ -4,7 +4,7 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 
-require "async-io"
+require "async/io/stream"
 
 require_relative 'error'
 

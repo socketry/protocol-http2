@@ -39,8 +39,12 @@ module Protocol
 
     class Framer
       def initialize(stream, frames = FRAMES)
-        @stream = Async::IO::Stream.new(stream)
-        puts 'HSDFILSJDFLIJSLDF'
+        @stream = case stream
+                  when Async::IO::Stream
+                    stream
+                  else
+                    Async::IO::Stream.new(stream)
+                  end
         @frames = frames
       end
 
@@ -100,7 +104,7 @@ module Protocol
           return Frame.parse_header(buffer)
         end
 
-        raise EOFError, 'Could not read frame header!'
+        raise EOFError, "Could not read frame header! buffer: #{buffer.size}"
       end
     end
   end

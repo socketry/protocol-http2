@@ -15,6 +15,7 @@ require_relative 'ping_frame'
 require_relative 'goaway_frame'
 require_relative 'window_update_frame'
 require_relative 'continuation_frame'
+require 'async/io'
 
 module Protocol
 	module HTTP2
@@ -37,7 +38,7 @@ module Protocol
 		
 		class Framer
 			def initialize(stream, frames = FRAMES)
-				@stream = stream
+				@stream = Async::IO::Stream.new(stream)
 				@frames = frames
 			end
 			

@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
 	
 	spec.required_ruby_version = ">= 2.7.6"
 	
+	spec.add_dependency "async-io", "~> 1.37"
 	spec.add_dependency "protocol-hpack", "~> 1.4"
 	spec.add_dependency "protocol-http", "~> 0.18"
 end

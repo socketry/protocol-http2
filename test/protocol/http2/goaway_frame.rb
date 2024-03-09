@@ -19,6 +19,8 @@ describe Protocol::HTTP2::GoawayFrame do
 	end
 	
 	it "applies to the connection" do
+		frame.pack(0, 0, "")
+		
 		expect(frame).to be(:connection?)
 	end
 	

@@ -211,7 +211,11 @@ module Protocol
 			end
 			
 			def write_frames
-				yield @framer
+				if @framer
+					yield @framer
+				else
+					raise EOFError, "Connection closed!"
+				end
 			end
 			
 			def update_local_settings(changes)

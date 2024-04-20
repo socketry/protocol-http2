@@ -65,6 +65,15 @@ describe Protocol::HTTP2::Connection do
 			connection.read_frame
 		end.to raise_exception(Protocol::HPACK::Error)
 	end
+	
+	it "can't write frames to a closed connection" do
+		connection.close
+		
+		expect do
+			connection.write_frames do |framer|
+			end
+		end.to raise_exception(EOFError, message: be =~ /Connection closed/)
+	end
 end
 
 with 'client and server' do

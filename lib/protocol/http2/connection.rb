@@ -143,9 +143,14 @@ module Protocol
 				end
 			end
 			
+			def synchronize
+				yield
+			end
+			
 			# Reads one frame from the network and processes. Processing the frame updates the state of the connection and related streams. If the frame triggers an error, e.g. a protocol error, the connection will typically emit a goaway frame and re-raise the exception. You should continue processing frames until the underlying connection is closed.
 			def read_frame
 				frame = @framer.read_frame(@local_settings.maximum_frame_size)
+				
 				# puts "#{self.class} #{@state} read_frame: class=#{frame.class} stream_id=#{frame.stream_id} flags=#{frame.flags} length=#{frame.length} (remote_stream_id=#{@remote_stream_id})"
 				# puts "Windows: local_window=#{@local_window.inspect}; remote_window=#{@remote_window.inspect}"
 				
@@ -207,12 +212,18 @@ module Protocol
 			end
 			
 			def write_frame(frame)
-				@framer.write_frame(frame)
+				synchronize do
+					@framer.write_frame(frame)
+					@framer.flush
+				end
 			end
 			
 			def write_frames
 				if @framer
-					yield @framer
+					synchronize do
+						yield @framer
+						@framer.flush
+					end
 				else
 					raise EOFError, "Connection closed!"
 				end

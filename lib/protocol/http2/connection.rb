@@ -214,16 +214,20 @@ module Protocol
 			def write_frame(frame)
 				synchronize do
 					@framer.write_frame(frame)
-					@framer.flush
 				end
+				
+				# The IO is already synchronized, and we don't want additional contention.
+				@framer.flush
 			end
 			
 			def write_frames
 				if @framer
 					synchronize do
 						yield @framer
-						@framer.flush
 					end
+					
+					# See above note.
+					@framer.flush
 				else
 					raise EOFError, "Connection closed!"
 				end

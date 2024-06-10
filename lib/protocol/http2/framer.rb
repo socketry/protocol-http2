@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
 
 require "async/io/stream"
@@ -49,6 +49,10 @@ module Protocol
 				@frames = frames
 			end
 			
+			def flush
+				@stream.flush
+			end
+			
 			def close
 				@stream.close
 			end
@@ -77,7 +81,7 @@ module Protocol
 				# Read the header:
 				length, type, flags, stream_id = read_header
 				
-				# Async.logger.debug(self) {"read_frame: length=#{length} type=#{type} flags=#{flags} stream_id=#{stream_id} -> klass=#{@frames[type].inspect}"}
+				# Console.debug(self) {"read_frame: length=#{length} type=#{type} flags=#{flags} stream_id=#{stream_id} -> klass=#{@frames[type].inspect}"}
 				
 				# Allocate the frame:
 				klass = @frames[type] || Frame
@@ -86,18 +90,18 @@ module Protocol
 				# Read the payload:
 				frame.read(@stream, maximum_frame_size)
 				
-				# Async.logger.debug(self, name: "read") {frame.inspect}
+				# Console.debug(self, name: "read") {frame.inspect}
 				
 				return frame
 			end
 			
+			# Write a frame to the underlying IO.
+			# After writing one or more frames, you should call flush to ensure the frames are sent to the remote peer.
+			# @parameter frame [Frame] the frame to write.
 			def write_frame(frame)
-				# Async.logger.debug(self, name: "write") {frame.inspect}
+				# Console.debug(self, name: "write") {frame.inspect}
 				
 				frame.write(@stream)
-				
-				# Don't call @stream.flush here because it can cause significant contention if there is a semaphore around this method.
-				# @stream.flush
 				
 				return frame
 			end

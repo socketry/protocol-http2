@@ -1,13 +1,20 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2023, by Samuel Williams.
+# Copyright, 2023-2024, by Samuel Williams.
 
 require 'protocol/http2/framer'
 
 describe Protocol::HTTP2::Framer do
 	let(:stream) {StringIO.new}
 	let(:framer) {subject.new(stream)}
+	
+	with "#flush" do
+		it "flushes the underlying stream" do
+			expect(stream).to receive(:flush)
+			framer.flush
+		end
+	end
 	
 	with "#closed?" do
 		it "reports the status of the underlying stream" do

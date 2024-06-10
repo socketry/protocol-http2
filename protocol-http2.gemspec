@@ -15,9 +15,14 @@ Gem::Specification.new do |spec|
 	
 	spec.homepage = "https://github.com/socketry/protocol-http2"
 	
+	spec.metadata = {
+		"documentation_uri" => "https://socketry.github.io/protocol-http2/",
+		"source_code_uri" => "https://github.com/socketry/protocol-http2.git",
+	}
+	
 	spec.files = Dir.glob(['{lib}/**/*', '*.md'], File::FNM_DOTMATCH, base: __dir__)
 	
-	spec.required_ruby_version = ">= 2.7.6"
+	spec.required_ruby_version = ">= 3.1"
 	
 	spec.add_dependency "async-io", "~> 1.37"
 	spec.add_dependency "protocol-hpack", "~> 1.4"

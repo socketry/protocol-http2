@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 # Copyright, 2023, by Marco Concetto Rudilosso.
 
 require_relative 'framer'
@@ -62,8 +62,9 @@ module Protocol
 				@remote_settings.maximum_frame_size
 			end
 			
+			# The maximum number of concurrent streams that this connection can initiate:
 			def maximum_concurrent_streams
-				@local_settings.maximum_concurrent_streams
+				@remote_settings.maximum_concurrent_streams
 			end
 			
 			attr :framer
@@ -143,9 +144,14 @@ module Protocol
 				end
 			end
 			
+			def synchronize
+				yield
+			end
+			
 			# Reads one frame from the network and processes. Processing the frame updates the state of the connection and related streams. If the frame triggers an error, e.g. a protocol error, the connection will typically emit a goaway frame and re-raise the exception. You should continue processing frames until the underlying connection is closed.
 			def read_frame
 				frame = @framer.read_frame(@local_settings.maximum_frame_size)
+				
 				# puts "#{self.class} #{@state} read_frame: class=#{frame.class} stream_id=#{frame.stream_id} flags=#{frame.flags} length=#{frame.length} (remote_stream_id=#{@remote_stream_id})"
 				# puts "Windows: local_window=#{@local_window.inspect}; remote_window=#{@remote_window.inspect}"
 				
@@ -207,11 +213,25 @@ module Protocol
 			end
 			
 			def write_frame(frame)
-				@framer.write_frame(frame)
+				synchronize do
+					@framer.write_frame(frame)
+				end
+				
+				# The IO is already synchronized, and we don't want additional contention.
+				@framer.flush
 			end
 			
 			def write_frames
-				yield @framer
+				if @framer
+					synchronize do
+						yield @framer
+					end
+					
+					# See above note.
+					@framer.flush
+				else
+					raise EOFError, "Connection closed!"
+				end
 			end
 			
 			def update_local_settings(changes)
@@ -370,7 +390,8 @@ module Protocol
 						raise ProtocolError, "Invalid stream id: #{stream_id} <= #{@remote_stream_id}!"
 					end
 					
-					if @streams.size < self.maximum_concurrent_streams
+					# We need to validate that we have less streams than the specified maximum:
+					if @streams.size < @local_settings.maximum_concurrent_streams
 						stream = accept_stream(stream_id)
 						@remote_stream_id = stream_id
 						

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
 require 'protocol/http2/goaway_frame'
 require 'frame_examples'
@@ -19,6 +19,8 @@ describe Protocol::HTTP2::GoawayFrame do
 	end
 	
 	it "applies to the connection" do
+		frame.pack(0, 0, "")
+		
 		expect(frame).to be(:connection?)
 	end
 	

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
 require 'connection_context'
 
@@ -40,6 +40,18 @@ describe Protocol::HTTP2::Client do
 	
 	it "should start in new state" do
 		expect(server.state).to be == :new
+	end
+	
+	it "fails with protocol error if first frame is not settings frame" do
+		framer.write_connection_preface
+		
+		data_frame = Protocol::HTTP2::DataFrame.new
+		data_frame.pack("Hello, World!")
+		framer.write_frame(data_frame)
+		
+		expect do
+			server.read_connection_preface
+		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /First frame must be #{Protocol::HTTP2::SettingsFrame}/)
 	end
 	
 	it "cannot read connection preface in open state" do

@@ -62,8 +62,9 @@ module Protocol
 				@remote_settings.maximum_frame_size
 			end
 			
+			# The maximum number of concurrent streams that this connection can initiate:
 			def maximum_concurrent_streams
-				@local_settings.maximum_concurrent_streams
+				@remote_settings.maximum_concurrent_streams
 			end
 			
 			attr :framer
@@ -389,7 +390,8 @@ module Protocol
 						raise ProtocolError, "Invalid stream id: #{stream_id} <= #{@remote_stream_id}!"
 					end
 					
-					if @streams.size < self.maximum_concurrent_streams
+					# We need to validate that we have less streams than the specified maximum:
+					if @streams.size < @local_settings.maximum_concurrent_streams
 						stream = accept_stream(stream_id)
 						@remote_stream_id = stream_id
 						

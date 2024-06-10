@@ -11,6 +11,29 @@ describe Protocol::HTTP2::Connection do
 	let(:framer) {Protocol::HTTP2::Framer.new(stream)}
 	let(:connection) {subject.new(framer, 1)}
 	
+	with "#maximum_concurrent_streams" do
+		it "is the remote peer's maximum concurrent streams" do
+			connection.remote_settings.maximum_concurrent_streams = 10
+			connection.local_settings.current.maximum_concurrent_streams = 5
+			
+			expect(connection.maximum_concurrent_streams).to be == 10
+		end
+	end
+	
+	with '#receive_headers' do
+		it "fails with protocol error if exceeding the maximum concurrent connections" do
+			connection.local_settings.current.maximum_concurrent_streams = 1
+			# Create a stream to 
+			connection.streams[1] = Protocol::HTTP2::Stream.new(connection, 1)
+			
+			frame = Protocol::HTTP2::HeadersFrame.new(3)
+			
+			expect do
+				connection.receive_headers(frame)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Exceeded maximum concurrent streams/)
+		end
+	end
+	
 	it "reports the connection id 0 is not closed" do
 		expect(connection).not.to be(:closed_stream_id?, 0)
 	end

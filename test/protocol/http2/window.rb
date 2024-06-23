@@ -3,7 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2019-2023, by Samuel Williams.
 
-require 'connection_context'
+require 'protocol/http2/connection_context'
 
 describe Protocol::HTTP2::Window do
 	let(:window) {subject.new}

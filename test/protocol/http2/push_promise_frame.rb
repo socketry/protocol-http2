@@ -4,15 +4,15 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/push_promise_frame'
-require 'connection_context'
-require 'frame_examples'
+require 'protocol/http2/connection_context'
+require 'protocol/http2/a_frame'
 
 describe Protocol::HTTP2::PushPromiseFrame do
 	let(:stream_id) {5}
 	let(:data) {"Hello World!"}
 	let(:frame) {subject.new}
 	
-	it_behaves_like FrameExamples do
+	it_behaves_like Protocol::HTTP2::AFrame do
 		def before
 			frame.set_flags(Protocol::HTTP2::END_HEADERS)
 			frame.pack stream_id, data
@@ -39,7 +39,7 @@ describe Protocol::HTTP2::PushPromiseFrame do
 	end
 	
 	with "client/server connection" do
-		include_context ConnectionContext
+		include_context Protocol::HTTP2::ConnectionContext
 		
 		def before
 			client.open!

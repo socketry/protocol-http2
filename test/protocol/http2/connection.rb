@@ -4,7 +4,7 @@
 # Copyright, 2019-2024, by Samuel Williams.
 # Copyright, 2023, by Marco Concetto Rudilosso.
 
-require 'connection_context'
+require 'protocol/http2/connection_context'
 
 describe Protocol::HTTP2::Connection do
 	let(:stream) {StringIO.new}
@@ -100,7 +100,7 @@ describe Protocol::HTTP2::Connection do
 end
 
 with 'client and server' do
-	include_context ConnectionContext
+	include_context Protocol::HTTP2::ConnectionContext
 	
 	it "can negotiate connection" do
 		first_server_frame = nil

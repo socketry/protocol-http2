@@ -4,12 +4,12 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/data_frame'
-require 'frame_examples'
+require 'protocol/http2/a_frame'
 
 describe Protocol::HTTP2::DataFrame do
 	let(:frame) {subject.new}
 	
-	it_behaves_like FrameExamples do
+	it_behaves_like Protocol::HTTP2::AFrame do
 		def before
 			frame.pack "Hello World!"
 			

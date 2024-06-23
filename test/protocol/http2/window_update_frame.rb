@@ -4,14 +4,14 @@
 # Copyright, 2019-2023, by Samuel Williams.
 
 require 'protocol/http2/window_update_frame'
-require 'connection_context'
-require 'frame_examples'
+require 'protocol/http2/connection_context'
+require 'protocol/http2/a_frame'
 
 describe Protocol::HTTP2::WindowUpdateFrame do
 	let(:window_size_increment) {1024}
 	let(:frame) {subject.new}
 	
-	it_behaves_like FrameExamples do
+	it_behaves_like Protocol::HTTP2::AFrame do
 		def before
 			frame.pack window_size_increment
 			
@@ -52,7 +52,7 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 	end
 	
 	with 'a connection' do
-		include_context ConnectionContext
+		include_context Protocol::HTTP2::ConnectionContext
 		
 		let(:framer) {client.framer}
 		

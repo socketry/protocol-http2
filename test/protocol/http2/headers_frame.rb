@@ -5,15 +5,15 @@
 
 require 'protocol/http2/headers_frame'
 
-require 'connection_context'
-require 'frame_examples'
+require 'protocol/http2/connection_context'
+require 'protocol/http2/a_frame'
 
 describe Protocol::HTTP2::HeadersFrame do
 	let(:priority) {Protocol::HTTP2::Priority.new(true, 42, 7)}
 	let(:data) {"Hello World!"}
 	let(:frame) {subject.new}
 	
-	it_behaves_like FrameExamples do
+	it_behaves_like Protocol::HTTP2::AFrame do
 		def before
 			frame.set_flags(Protocol::HTTP2::END_HEADERS)
 			frame.pack priority, data
@@ -103,7 +103,7 @@ describe Protocol::HTTP2::HeadersFrame do
 	end
 	
 	with "client/server connection" do
-		include_context ConnectionContext
+		include_context Protocol::HTTP2::ConnectionContext
 		
 		def before
 			client.open!

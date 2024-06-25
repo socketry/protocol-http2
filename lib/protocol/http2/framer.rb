@@ -3,6 +3,9 @@
 # Released under the MIT License.
 # Copyright, 2019-2024, by Samuel Williams.
 
+
+require "async/io/stream"
+
 require_relative 'error'
 
 require_relative 'data_frame'
@@ -37,7 +40,12 @@ module Protocol
 		
 		class Framer
 			def initialize(stream, frames = FRAMES)
-				@stream = stream
+			 @stream = case stream
+					when Async::IO::Stream
+						stream
+					else
+						Async::IO::Stream.new(stream)
+					end
 				@frames = frames
 			end
 			
@@ -99,7 +107,7 @@ module Protocol
 			end
 			
 			def read_header
-				if buffer = @stream.read(9)
+				if buffer = @stream.peek(9)
 					if buffer.bytesize == 9
 						return Frame.parse_header(buffer)
 					end

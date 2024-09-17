@@ -4,7 +4,7 @@
 # Copyright, 2019-2024, by Samuel Williams.
 # Copyright, 2023, by Marco Concetto Rudilosso.
 
-require 'protocol/http2/connection_context'
+require "protocol/http2/connection_context"
 
 describe Protocol::HTTP2::Connection do
 	let(:stream) {StringIO.new}
@@ -20,7 +20,7 @@ describe Protocol::HTTP2::Connection do
 		end
 	end
 	
-	with '#receive_headers' do
+	with "#receive_headers" do
 		it "fails with protocol error if exceeding the maximum concurrent connections" do
 			connection.local_settings.current.maximum_concurrent_streams = 1
 			# Create a stream to 
@@ -99,7 +99,7 @@ describe Protocol::HTTP2::Connection do
 	end
 end
 
-with 'client and server' do
+with "client and server" do
 	include_context Protocol::HTTP2::ConnectionContext
 	
 	it "can negotiate connection" do
@@ -159,8 +159,8 @@ with 'client and server' do
 		let(:request_data) {"Hello World!"}
 		let(:stream) {client.create_stream}
 		
-		let(:request_headers) {[[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]}
-		let(:response_headers) {[[':status', '200']]}
+		let(:request_headers) {[[":method", "GET"], [":path", "/"], [":authority", "localhost"]]}
+		let(:response_headers) {[[":status", "200"]]}
 		
 		it "can determine who initiated stream" do
 			expect(client).to be(:client_stream_id?, stream.id)
@@ -180,7 +180,7 @@ with 'client and server' do
 			expect(server).to be(:closed_stream_id?, stream.id)
 		end
 		
-		with 'server created stream' do
+		with "server created stream" do
 			let(:stream) {server.create_stream}
 			
 			it "can determine who initiated stream" do
@@ -345,7 +345,7 @@ with 'client and server' do
 	it "allows client to create new stream and send headers when client maximum concurrent streams is 0" do
 		client.local_settings.current.maximum_concurrent_streams = 0
 		client_stream = client.create_stream
-		request_headers = [[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]
+		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
 		client_stream.send_headers(nil, request_headers)
 
 		expect(server).to receive(:receive_headers) do |frame|
@@ -360,7 +360,7 @@ with 'client and server' do
 	it "does not allow client to create new stream and send headers when server maximum concurrent streams is 0" do
 		server.local_settings.current.maximum_concurrent_streams = 0
 		client_stream = client.create_stream
-		request_headers = [[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]
+		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
 		client_stream.send_headers(nil, request_headers)
 
 		expect { server.read_frame }.to raise_exception(Protocol::HTTP2::ProtocolError)
@@ -369,7 +369,7 @@ with 'client and server' do
 	it "allows server to create new stream and send headers when server maximum concurrent streams is 0" do
 		server.local_settings.current.maximum_concurrent_streams = 0
 		server_stream = server.create_stream
-		request_headers = [[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]
+		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
 		server_stream.send_headers(nil, request_headers)
 
 		expect(client).to receive(:receive_headers) do |frame|
@@ -384,13 +384,13 @@ with 'client and server' do
 	it "does not allow server to create new stream send headers when client maximum concurrent streams is 0" do
 		client.local_settings.current.maximum_concurrent_streams = 0
 		server_stream = server.create_stream
-		request_headers = [[':method', 'GET'], [':path', '/'], [':authority', 'localhost']]
+		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
 		server_stream.send_headers(nil, request_headers)
 
 		expect { client.read_frame }.to raise_exception(Protocol::HTTP2::ProtocolError)
 	end
 	
-	with 'closed client' do
+	with "closed client" do
 		def before
 			client.close!
 			

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/continuation_frame'
-require 'protocol/http2/a_frame'
+require "protocol/http2/continuation_frame"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::ContinuationFrame do
 	let(:data) {"Hello World!"}
@@ -18,7 +18,7 @@ describe Protocol::HTTP2::ContinuationFrame do
 		end
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "packs data" do
 			frame.pack data
 			
@@ -32,7 +32,7 @@ describe Protocol::HTTP2::ContinuationFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "unpacks data" do
 			frame.pack data
 			
@@ -46,7 +46,7 @@ describe Protocol::HTTP2::ContinuationFrame do
 		end
 	end
 	
-	with '#apply' do
+	with "#apply" do
 		let(:connection) {Protocol::HTTP2::Connection.new(nil, 0)}
 		
 		it "applies the frame to a connection" do
@@ -57,7 +57,7 @@ describe Protocol::HTTP2::ContinuationFrame do
 		end
 	end
 	
-	with '#inspect' do
+	with "#inspect" do
 		it "can generate a string representation" do
 			expect(frame.inspect).to be =~ /stream_id=0 flags=0 length=0/
 		end

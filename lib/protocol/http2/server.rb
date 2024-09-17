@@ -3,7 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2019-2024, by Samuel Williams.
 
-require_relative 'connection'
+require_relative "connection"
 
 module Protocol
 	module HTTP2

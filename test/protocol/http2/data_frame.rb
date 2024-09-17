@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/data_frame'
-require 'protocol/http2/a_frame'
+require "protocol/http2/data_frame"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::DataFrame do
 	let(:frame) {subject.new}
@@ -20,10 +20,10 @@ describe Protocol::HTTP2::DataFrame do
 	with "wire representation" do
 		let(:stream) {StringIO.new}
 		
-		let(:payload) {'Hello World!'}
+		let(:payload) {"Hello World!"}
 		
 		let(:data) do
-			[0, 12, 0x0, 0x1, 0x1].pack('CnCCNC*') + payload
+			[0, 12, 0x0, 0x1, 0x1].pack("CnCCNC*") + payload
 		end
 		
 		it "should write frame to buffer" do
@@ -50,7 +50,7 @@ describe Protocol::HTTP2::DataFrame do
 		end
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "adds appropriate padding" do
 			frame.pack "Hello World!", padding_size: 4
 			
@@ -98,7 +98,7 @@ describe Protocol::HTTP2::DataFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "removes padding" do
 			frame.pack "Hello World!"
 			
@@ -106,7 +106,7 @@ describe Protocol::HTTP2::DataFrame do
 		end
 	end
 	
-	with '#inspect' do
+	with "#inspect" do
 		it "can generate a string representation" do
 			expect(frame.inspect).to be =~ /Protocol::HTTP2::DataFrame stream_id=0 flags=0 0b/
 		end

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2023, by Samuel Williams.
+# Copyright, 2023-2024, by Samuel Williams.
 
-require 'protocol/http2/error'
+require "protocol/http2/error"
 
 describe Protocol::HTTP2::HeaderError do
 	let(:error) {subject.new("Invalid header key")}

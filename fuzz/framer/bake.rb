@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2020-2023, by Samuel Williams.
+# Copyright, 2020-2024, by Samuel Williams.
 
 # Run the fuzz test.
 def run
@@ -9,7 +9,7 @@ def run
 end
 
 def generate
-	require_relative '../../lib/protocol/http2/framer'
+	require_relative "../../lib/protocol/http2/framer"
 	
 	framer = Protocol::HTTP2::Framer.new($stdout)
 	

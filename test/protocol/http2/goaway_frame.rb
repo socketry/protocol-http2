@@ -3,8 +3,8 @@
 # Released under the MIT License.
 # Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/goaway_frame'
-require 'protocol/http2/a_frame'
+require "protocol/http2/goaway_frame"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::GoawayFrame do
 	let(:data) {"Hikikomori desu!"}
@@ -24,7 +24,7 @@ describe Protocol::HTTP2::GoawayFrame do
 		expect(frame).to be(:connection?)
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "packs data" do
 			frame.pack 3, 2, data
 			
@@ -32,7 +32,7 @@ describe Protocol::HTTP2::GoawayFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "unpacks data" do
 			frame.pack 3, 2, data
 			

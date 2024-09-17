@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/ping_frame'
-require 'protocol/http2/a_frame'
+require "protocol/http2/ping_frame"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::PingFrame do
 	let(:data) {"PingPong"}
@@ -22,7 +22,7 @@ describe Protocol::HTTP2::PingFrame do
 		expect(frame).to be(:connection?)
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "packs data" do
 			frame.pack data
 			
@@ -30,7 +30,7 @@ describe Protocol::HTTP2::PingFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "unpacks data" do
 			frame.pack data
 			
@@ -38,10 +38,10 @@ describe Protocol::HTTP2::PingFrame do
 		end
 	end
 	
-	with '#read_payload' do
-		let(:stream) {StringIO.new([0, 0, 0, 0, 0, 0, 0, 0].pack('C*'))}
+	with "#read_payload" do
+		let(:stream) {StringIO.new([0, 0, 0, 0, 0, 0, 0, 0].pack("C*"))}
 		
-		with 'invalid stream id' do
+		with "invalid stream id" do
 			it "raises an error" do
 				frame.stream_id = 1
 				frame.length = 0
@@ -53,7 +53,7 @@ describe Protocol::HTTP2::PingFrame do
 			end
 		end
 		
-		with 'a length other than 8' do
+		with "a length other than 8" do
 			it "raises an error" do
 				frame.stream_id = 0
 				frame.length = 4

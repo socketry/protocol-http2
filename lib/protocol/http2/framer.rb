@@ -3,18 +3,18 @@
 # Released under the MIT License.
 # Copyright, 2019-2024, by Samuel Williams.
 
-require_relative 'error'
+require_relative "error"
 
-require_relative 'data_frame'
-require_relative 'headers_frame'
-require_relative 'priority_frame'
-require_relative 'reset_stream_frame'
-require_relative 'settings_frame'
-require_relative 'push_promise_frame'
-require_relative 'ping_frame'
-require_relative 'goaway_frame'
-require_relative 'window_update_frame'
-require_relative 'continuation_frame'
+require_relative "data_frame"
+require_relative "headers_frame"
+require_relative "priority_frame"
+require_relative "reset_stream_frame"
+require_relative "settings_frame"
+require_relative "push_promise_frame"
+require_relative "ping_frame"
+require_relative "goaway_frame"
+require_relative "window_update_frame"
+require_relative "continuation_frame"
 
 module Protocol
 	module HTTP2

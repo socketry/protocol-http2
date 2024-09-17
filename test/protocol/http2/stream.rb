@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/connection_context'
+require "protocol/http2/connection_context"
 
 describe Protocol::HTTP2::Stream do
 	include_context Protocol::HTTP2::ConnectionContext
@@ -122,7 +122,7 @@ describe Protocol::HTTP2::Stream do
 	
 	with "open stream" do
 		let(:stream) {client.create_stream}
-		let(:headers) {[[':method', 'GET'], [':path', '/'], [':scheme', 'https'], [':authority', 'example.com']]}
+		let(:headers) {[[":method", "GET"], [":path", "/"], [":scheme", "https"], [":authority", "example.com"]]}
 		let(:server_stream) {server[stream.id]}
 		
 		def before
@@ -179,7 +179,7 @@ describe Protocol::HTTP2::Stream do
 	
 	with "half closed local stream" do
 		let(:stream) {client.create_stream}
-		let(:headers) {[[':method', 'GET'], [':path', '/'], [':scheme', 'https'], [':authority', 'example.com']]}
+		let(:headers) {[[":method", "GET"], [":path", "/"], [":scheme", "https"], [":authority", "example.com"]]}
 		let(:server_stream) {server[stream.id]}
 		
 		def before
@@ -216,8 +216,8 @@ describe Protocol::HTTP2::Stream do
 		
 		let(:promised_stream) {@promised_stream}
 		let(:stream) {client[@pushed_stream_id]}
-		let(:headers) {[[':method', 'GET'], [':path', '/'], [':scheme', 'https'], [':authority', 'example.com']]}
-		let(:response_headers) {[[':status', '200']]}
+		let(:headers) {[[":method", "GET"], [":path", "/"], [":scheme", "https"], [":authority", "example.com"]]}
+		let(:response_headers) {[[":status", "200"]]}
 		
 		def before
 			origin_stream.send_headers(nil, headers)

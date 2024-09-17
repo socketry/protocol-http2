@@ -3,7 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/connection_context'
+require "protocol/http2/connection_context"
 
 describe Protocol::HTTP2::Client do
 	include_context Protocol::HTTP2::ConnectionContext

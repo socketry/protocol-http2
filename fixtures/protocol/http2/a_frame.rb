@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/framer'
+require "protocol/http2/framer"
 
 module Protocol
 	module HTTP2

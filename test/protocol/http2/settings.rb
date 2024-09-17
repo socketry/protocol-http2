@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2023, by Samuel Williams.
+# Copyright, 2023-2024, by Samuel Williams.
 
-require 'protocol/http2/settings_frame'
+require "protocol/http2/settings_frame"
 
 describe Protocol::HTTP2::Settings do
 	let(:settings) {subject.new}
 	
-	with '#enable_push' do
+	with "#enable_push" do
 		it "is enabled by default" do
 			expect(settings.enable_push).to be == 1
 			expect(settings).to be(:enable_push?)
@@ -25,7 +25,7 @@ describe Protocol::HTTP2::Settings do
 		end
 	end
 	
-	with '#initial_window_size' do
+	with "#initial_window_size" do
 		it "is 65535 by default" do
 			expect(settings.initial_window_size).to be == 0xFFFF
 		end
@@ -40,7 +40,7 @@ describe Protocol::HTTP2::Settings do
 		end
 	end
 	
-	with '#maximum_frame_size' do
+	with "#maximum_frame_size" do
 		it "is 16384 by default" do
 			expect(settings.maximum_frame_size).to be == 0x4000
 		end
@@ -56,7 +56,7 @@ describe Protocol::HTTP2::Settings do
 		end
 	end
 	
-	with '#enable_connect_protocol' do
+	with "#enable_connect_protocol" do
 		it "is disabled by default" do
 			expect(settings.enable_connect_protocol).to be == 0
 			expect(settings).not.to be(:enable_connect_protocol?)

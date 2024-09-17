@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/settings_frame'
-require 'protocol/http2/a_frame'
+require "protocol/http2/settings_frame"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::SettingsFrame do
 	let(:settings) {[
@@ -24,7 +24,7 @@ describe Protocol::HTTP2::SettingsFrame do
 		expect(frame).to be(:connection?)
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "packs settings" do
 			frame.pack settings
 			
@@ -32,7 +32,7 @@ describe Protocol::HTTP2::SettingsFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "unpacks settings" do
 			frame.pack settings
 			
@@ -55,10 +55,10 @@ describe Protocol::HTTP2::SettingsFrame do
 		end
 	end
 	
-	with '#read_payload' do
-		let(:stream) {StringIO.new([0, 0, 0, 0, 0, 0].pack('C*'))}
+	with "#read_payload" do
+		let(:stream) {StringIO.new([0, 0, 0, 0, 0, 0].pack("C*"))}
 		
-		with 'invalid stream id' do
+		with "invalid stream id" do
 			it "raises an error" do
 				frame.stream_id = 1
 				frame.length = 0
@@ -70,7 +70,7 @@ describe Protocol::HTTP2::SettingsFrame do
 			end
 		end
 		
-		with 'non-zero length acknowledgement' do
+		with "non-zero length acknowledgement" do
 			it "raises an error" do
 				frame.acknowledgement!
 				frame.stream_id = 0
@@ -83,7 +83,7 @@ describe Protocol::HTTP2::SettingsFrame do
 			end
 		end
 		
-		with 'invalid length modulo 6' do
+		with "invalid length modulo 6" do
 			it "raises an error" do
 				frame.stream_id = 0
 				frame.length = 5

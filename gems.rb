@@ -15,8 +15,10 @@ group :maintenance, optional: true do
 end
 
 group "test" do
-	gem "covered"
 	gem "sus"
+	gem "covered"
+	gem "decode"
+	gem "rubocop"
 	
 	gem "bake-test"
 	gem "bake-test-external"

@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/headers_frame'
+require "protocol/http2/headers_frame"
 
-require 'protocol/http2/connection_context'
-require 'protocol/http2/a_frame'
+require "protocol/http2/connection_context"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::HeadersFrame do
 	let(:priority) {Protocol::HTTP2::Priority.new(true, 42, 7)}
@@ -22,7 +22,7 @@ describe Protocol::HTTP2::HeadersFrame do
 		end
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "adds appropriate padding" do
 			frame.pack nil, data
 			
@@ -38,7 +38,7 @@ describe Protocol::HTTP2::HeadersFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "removes padding" do
 			frame.pack nil, data
 			
@@ -46,7 +46,7 @@ describe Protocol::HTTP2::HeadersFrame do
 		end
 	end
 	
-	with '#continuation' do
+	with "#continuation" do
 		let(:stream) {StringIO.new}
 		
 		def before
@@ -135,7 +135,7 @@ describe Protocol::HTTP2::HeadersFrame do
 		end
 	end
 	
-	with '#inspect' do
+	with "#inspect" do
 		it "can generate a string representation" do
 			expect(frame.inspect).to be =~ /Protocol::HTTP2::HeadersFrame stream_id=0 flags=0 0b/
 		end

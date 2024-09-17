@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/priority_frame'
-require 'protocol/http2/a_frame'
+require "protocol/http2/priority_frame"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::Priority do
 	let(:priority) {subject.new}
 	
-	with '.default' do
+	with ".default" do
 		let(:priority) {subject.default}
 		
 		it "has a default weight" do
@@ -17,7 +17,7 @@ describe Protocol::HTTP2::Priority do
 		end
 	end
 	
-	with '#weight' do
+	with "#weight" do
 		it "can be set" do
 			priority.weight = 42
 			expect(priority.weight).to be == 42
@@ -53,7 +53,7 @@ describe Protocol::HTTP2::PriorityFrame do
 		end
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "packs priority" do
 			frame.pack priority
 			
@@ -61,7 +61,7 @@ describe Protocol::HTTP2::PriorityFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "unpacks priority" do
 			frame.pack priority
 			
@@ -69,7 +69,7 @@ describe Protocol::HTTP2::PriorityFrame do
 		end
 	end
 	
-	with '#read_payload' do
+	with "#read_payload" do
 		let(:stream) {StringIO.new("!!!")}
 		
 		it "must be 4 bytes long" do 

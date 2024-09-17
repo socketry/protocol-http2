@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require_relative 'frame'
-require_relative 'padded'
+require_relative "frame"
+require_relative "padded"
 
 module Protocol
 	module HTTP2

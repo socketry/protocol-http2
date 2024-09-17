@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/window_update_frame'
-require 'protocol/http2/connection_context'
-require 'protocol/http2/a_frame'
+require "protocol/http2/window_update_frame"
+require "protocol/http2/connection_context"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::WindowUpdateFrame do
 	let(:window_size_increment) {1024}
@@ -19,7 +19,7 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 		end
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "packs data" do
 			frame.pack window_size_increment
 			
@@ -27,7 +27,7 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "unpacks data" do
 			frame.pack window_size_increment
 			
@@ -35,10 +35,10 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 		end
 	end
 	
-	with '#read_payload' do
-		let(:stream) {StringIO.new([0, 0, 0, 0].pack('C*'))}
+	with "#read_payload" do
+		let(:stream) {StringIO.new([0, 0, 0, 0].pack("C*"))}
 		
-		with 'a length other than 4' do
+		with "a length other than 4" do
 			it "raises an error" do
 				frame.stream_id = 0
 				frame.length = 2
@@ -51,7 +51,7 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 		end
 	end
 	
-	with 'a connection' do
+	with "a connection" do
 		include_context Protocol::HTTP2::ConnectionContext
 		
 		let(:framer) {client.framer}
@@ -61,7 +61,7 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 		end
 		
 		let(:headers) do
-			[[':method', 'GET'], [':authority', 'Earth']]
+			[[":method", "GET"], [":authority", "Earth"]]
 		end
 		
 		let(:stream) do
@@ -148,7 +148,7 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 			expect(frame.unpack).to be == 120
 		end
 		
-		with '#expand' do
+		with "#expand" do
 			it "should expand the window" do
 				expect(client.remote_window.used).to be == 0
 				expect(client.remote_window.capacity).to be == 0xFFFF
@@ -173,7 +173,7 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 			end
 		end
 		
-		with '#receive_window_update' do
+		with "#receive_window_update" do
 			it "should be invoked when window update is received" do
 				# Write 200 bytes of data (client -> server) which exhausts server local window
 				stream.send_data("*" * 200)

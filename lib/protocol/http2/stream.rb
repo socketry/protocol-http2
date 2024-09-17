@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require_relative 'connection'
-require_relative 'dependency'
+require_relative "connection"
+require_relative "dependency"
 
 module Protocol
 	module HTTP2

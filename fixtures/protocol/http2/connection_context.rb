@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/client'
-require 'protocol/http2/server'
-require 'protocol/http2/stream'
+require "protocol/http2/client"
+require "protocol/http2/server"
+require "protocol/http2/stream"
 
-require 'socket'
+require "socket"
 
 module Protocol
 	module HTTP2

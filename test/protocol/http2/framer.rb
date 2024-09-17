@@ -3,7 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2023-2024, by Samuel Williams.
 
-require 'protocol/http2/framer'
+require "protocol/http2/framer"
 
 describe Protocol::HTTP2::Framer do
 	let(:stream) {StringIO.new}
@@ -23,7 +23,7 @@ describe Protocol::HTTP2::Framer do
 		end
 	end
 	
-	with '#read_connection_preface' do
+	with "#read_connection_preface" do
 		with "invalid preface" do
 			let(:stream) {StringIO.new("Hello World!")}
 			
@@ -41,7 +41,7 @@ describe Protocol::HTTP2::Framer do
 		end
 	end
 	
-	with '#read_frame' do
+	with "#read_frame" do
 		with "invalid frame" do
 			let(:stream) {StringIO.new("!")}
 			

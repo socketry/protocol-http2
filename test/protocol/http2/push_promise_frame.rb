@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 
-require 'protocol/http2/push_promise_frame'
-require 'protocol/http2/connection_context'
-require 'protocol/http2/a_frame'
+require "protocol/http2/push_promise_frame"
+require "protocol/http2/connection_context"
+require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::PushPromiseFrame do
 	let(:stream_id) {5}
@@ -21,7 +21,7 @@ describe Protocol::HTTP2::PushPromiseFrame do
 		end
 	end
 	
-	with '#pack' do
+	with "#pack" do
 		it "packs stream_id and data with padding" do
 			frame.pack stream_id, data
 			
@@ -30,7 +30,7 @@ describe Protocol::HTTP2::PushPromiseFrame do
 		end
 	end
 	
-	with '#unpack' do
+	with "#unpack" do
 		it "unpacks stream_id and data" do
 			frame.pack stream_id, data
 			
@@ -51,11 +51,11 @@ describe Protocol::HTTP2::PushPromiseFrame do
 		let(:stream) {client.create_stream}
 		
 		let(:request_headers) do
-			[[':method', 'GET'], [':authority', 'Earth'], [':path', '/index.html']]
+			[[":method", "GET"], [":authority", "Earth"], [":path", "/index.html"]]
 		end
 		
 		let(:push_promise_headers) do
-			[[':method', 'GET'], [':authority', 'Earth'], [':path', '/index.css']]
+			[[":method", "GET"], [":authority", "Earth"], [":path", "/index.css"]]
 		end
 		
 		it "sends push promise to client" do

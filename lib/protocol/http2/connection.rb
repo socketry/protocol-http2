@@ -4,11 +4,11 @@
 # Copyright, 2019-2024, by Samuel Williams.
 # Copyright, 2023, by Marco Concetto Rudilosso.
 
-require_relative 'framer'
-require_relative 'dependency'
-require_relative 'flow_controlled'
+require_relative "framer"
+require_relative "dependency"
+require_relative "flow_controlled"
 
-require 'protocol/hpack'
+require "protocol/hpack"
 
 module Protocol
 	module HTTP2

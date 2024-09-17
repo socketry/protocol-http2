@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2023, by Samuel Williams.
+# Copyright, 2023-2024, by Samuel Williams.
 
-require 'protocol/http2/frame'
+require "protocol/http2/frame"
 
 describe Protocol::HTTP2::Frame do
 	let(:frame) {subject.new(0, 0, 0)}
 	
-	with '#read_header' do
+	with "#read_header" do
 		it "can't read a frame header with an empty stream" do
 			buffer = StringIO.new
 			
@@ -18,7 +18,7 @@ describe Protocol::HTTP2::Frame do
 		end
 	end
 	
-	with '#read_payload' do
+	with "#read_payload" do
 		it "can read a frame with payload and matching length" do
 			buffer = StringIO.new("Hello World!")
 			
@@ -38,7 +38,7 @@ describe Protocol::HTTP2::Frame do
 		end
 	end
 	
-	with '#header' do
+	with "#header" do
 		it "can generate a frame header" do
 			frame.length = 0
 			expect(frame.header).to be == "\x00\x00\x00\x00\x00\x00\x00\x00\x00"
@@ -60,7 +60,7 @@ describe Protocol::HTTP2::Frame do
 		end
 	end
 	
-	with '#write_payload' do
+	with "#write_payload" do
 		it "can write a frame with payload and matching length" do
 			buffer = StringIO.new
 			
@@ -106,7 +106,7 @@ describe Protocol::HTTP2::Frame do
 		)
 	end
 	
-	with 'a connection' do
+	with "a connection" do
 		let(:connection) {Protocol::HTTP2::Connection.new(nil, 0)}
 		
 		it "can apply a frame to the connection" do
@@ -115,7 +115,7 @@ describe Protocol::HTTP2::Frame do
 		end
 	end
 	
-	with '#inspect' do
+	with "#inspect" do
 		it "can generate a string representation" do
 			expect(frame.inspect).to be =~ /Protocol::HTTP2::Frame stream_id=0/
 		end

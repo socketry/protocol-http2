@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2023, by Samuel Williams.
+# Copyright, 2019-2024, by Samuel Williams.
 # Copyright, 2019, by Yuta Iwama.
 
-require_relative 'error'
+require_relative "error"
 
 module Protocol
 	module HTTP2
@@ -106,7 +106,7 @@ module Protocol
 				@stream_id.zero?
 			end
 			
-			HEADER_FORMAT = 'CnCCN'.freeze
+			HEADER_FORMAT = "CnCCN".freeze
 			STREAM_ID_MASK  = 0x7fffffff
 			
 			# Generates common 9-byte frame header.

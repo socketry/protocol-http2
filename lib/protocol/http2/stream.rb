@@ -8,7 +8,7 @@ require_relative "dependency"
 
 module Protocol
 	module HTTP2
-		# A single HTTP 2.0 connection can multiplex multiple streams in parallel:
+		# A single HTTP/2 connection can multiplex multiple streams in parallel:
 		# multiple requests and responses can be in flight simultaneously and stream
 		# data can be interleaved and prioritized.
 		#
@@ -18,42 +18,44 @@ module Protocol
 		# diagram below) and provide your application logic to handle request
 		# and response processing.
 		#
-		#                          +--------+
-		#                  send PP |        | recv PP
-		#                 ,--------|  idle  |--------.
-		#                /         |        |         \
-		#               v          +--------+          v
-		#        +----------+          |           +----------+
-		#        |          |          | send H /  |          |
-		# ,------| reserved |          | recv H    | reserved |------.
-		# |      | (local)  |          |           | (remote) |      |
-		# |      +----------+          v           +----------+      |
-		# |          |             +--------+             |          |
-		# |          |     recv ES |        | send ES     |          |
-		# |   send H |     ,-------|  open  |-------.     | recv H   |
-		# |          |    /        |        |        \    |          |
-		# |          v   v         +--------+         v   v          |
-		# |      +----------+          |           +----------+      |
-		# |      |   half   |          |           |   half   |      |
-		# |      |  closed  |          | send R /  |  closed  |      |
-		# |      | (remote) |          | recv R    | (local)  |      |
-		# |      +----------+          |           +----------+      |
-		# |           |                |                 |           |
-		# |           | send ES /      |       recv ES / |           |
-		# |           | send R /       v        send R / |           |
-		# |           | recv R     +--------+   recv R   |           |
-		# | send R /  `----------->|        |<-----------'  send R / |
-		# | recv R                 | closed |               recv R   |
-		# `----------------------->|        |<----------------------'
-		#                          +--------+
-		# 
-		#    send:   endpoint sends this frame
-		#    recv:   endpoint receives this frame
-		# 
-		#    H:  HEADERS frame (with implied CONTINUATIONs)
-		#    PP: PUSH_PROMISE frame (with implied CONTINUATIONs)
-		#    ES: END_STREAM flag
-		#    R:  RST_STREAM frame
+		# ```
+		#                          ┌────────┐
+		#                  send PP │        │ recv PP
+		#               ┌──────────┤  idle  ├──────────┐
+		#               │          │        │          │
+		#               ▼          └───┬────┘          ▼
+		#        ┌──────────┐          │           ┌──────────┐
+		#        │          │          │ send H /  │          │
+		# ┌──────┼ reserved │          │ recv H    │ reserved ├──────┐
+		# │      │ (local)  │          │           │ (remote) │      │
+		# │      └───┬──────┘          ▼           └──────┬───┘      │
+		# │          │             ┌────────┐             │          │
+		# │          │     recv ES │        │ send ES     │          │
+		# │   send H │   ┌─────────┤  open  ├─────────┐   │ recv H   │
+		# │          │   │         │        │         │   │          │
+		# │          ▼   ▼         └───┬────┘         ▼   ▼          │
+		# │      ┌──────────┐          │           ┌──────────┐      │
+		# │      │   half   │          │           │   half   │      │
+		# │      │  closed  │          │ send R /  │  closed  │      │
+		# │      │ (remote) │          │ recv R    │ (local)  │      │
+		# │      └────┬─────┘          │           └─────┬────┘      │
+		# │           │                │                 │           │
+		# │           │ send ES /      │       recv ES / │           │
+		# │           │ send R /       ▼        send R / │           │
+		# │           │ recv R     ┌────────┐   recv R   │           │
+		# │ send R /  └───────────►│        │◄───────────┘  send R / │
+		# │ recv R                 │ closed │               recv R   │
+		# └───────────────────────►│        │◄───────────────────────┘
+		#                          └────────┘
+		# ```
+		#
+		# - `send`: endpoint sends this frame
+		# - `recv`: endpoint receives this frame
+		#
+		# - H:  HEADERS frame (with implied CONTINUATIONs)
+		# - PP: PUSH_PROMISE frame (with implied CONTINUATIONs)
+		# - ES: END_STREAM flag
+		# - R:  RST_STREAM frame
 		#
 		# State transition methods use a trailing "!".
 		class Stream

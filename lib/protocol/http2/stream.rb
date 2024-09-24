@@ -221,18 +221,12 @@ module Protocol
 				end
 			end
 			
-			# The stream has been opened.
-			def opened(error = nil)
-			end
-			
 			def open!
 				if @state == :idle
 					@state = :open
 				else
 					raise ProtocolError, "Cannot open stream in state: #{@state}"
 				end
-				
-				self.opened
 				
 				return self
 			end

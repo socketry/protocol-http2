@@ -203,8 +203,12 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 					expect(frame).to be_a Protocol::HTTP2::WindowUpdateFrame
 				end
 				
-				expect(client).to receive(:receive_window_update)
+				expect(client).to receive(:receive_window_update).twice
 				
+				stream.send_data("*" * client.available_size)
+				expect(server.read_frame).to be_a Protocol::HTTP2::DataFrame
+				
+				frame = client.read_frame
 				expect(frame).to be_a(Protocol::HTTP2::WindowUpdateFrame)
 				expect(frame).to be(:connection?) # stream_id = 0
 				
@@ -237,5 +241,20 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 				end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot update window of idle stream/)
 			end
 		end
-	end	
+		
+		with "desired capacity" do
+			it "should send window updates only as needed" do
+				expect(client.local_window.desired).to be == 0xFFFF
+				
+				server_stream = server[stream.id]
+				
+				# Send a data frame that will consume less than half of the desired capacity:
+				server_stream.send_data("*" * 0xFF)
+				
+				expect(client.read_frame).to be_a Protocol::HTTP2::DataFrame
+				expect(client.local_window.used).to be == 0xFF
+				expect(client.local_window).not.to be(:limited?)
+			end
+		end
+	end
 end

@@ -4,6 +4,7 @@
 # Copyright, 2019-2024, by Samuel Williams.
 
 require "protocol/http2/connection_context"
+require "json"
 
 describe Protocol::HTTP2::Window do
 	let(:window) {subject.new}
@@ -53,6 +54,31 @@ describe Protocol::HTTP2::LocalWindow do
 		it "can consume available capacity" do
 			window.consume(window.available)
 			expect(window.wanted).to be == 200
+		end
+		
+		it "is not limited if the half the desired capacity is available" do
+			expect(window).not.to be(:limited?)
+			
+			# Consume the entire window:
+			window.consume(window.available)
+			
+			expect(window).to be(:limited?)
+			
+			# Expand the window by at least half the desired capacity:
+			window.expand(window.desired / 2)
+			
+			expect(window).not.to be(:limited?)
+		end
+	end
+	
+	with "#limited?" do
+		it "becomes limited after half the capacity is consumed" do
+			expect(window).not.to be(:limited?)
+			
+			# Consume a little more than half:
+			window.consume(window.capacity / 2 + 2)
+			
+			expect(window).to be(:limited?)
 		end
 	end
 end

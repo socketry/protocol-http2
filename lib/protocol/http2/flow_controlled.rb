@@ -70,15 +70,11 @@ module Protocol
 			def receive_window_update(frame)
 				amount = frame.unpack
 				
-				# Async.logger.info(self) {"expanding remote_window=#{@remote_window} by #{amount}"}
-				
 				if amount != 0
 					@remote_window.expand(amount)
 				else
 					raise ProtocolError, "Invalid window size increment: #{amount}!"
 				end
-				
-				# puts "expanded remote_window=#{@remote_window} by #{amount}"
 			end
 			
 			# The window has been expanded by the given amount.

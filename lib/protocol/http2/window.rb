@@ -6,8 +6,11 @@
 module Protocol
 	module HTTP2
 		class Window
+			# When an HTTP/2 connection is first established, new streams are created with an initial flow-control window size of 65,535 octets. The connection flow-control window is also 65,535 octets.
+			DEFAULT_CAPACITY = 0xFFFF
+			
 			# @param capacity [Integer] The initial window size, typically from the settings.
-			def initialize(capacity = 0xFFFF)
+			def initialize(capacity = DEFAULT_CAPACITY)
 				# This is the main field required:
 				@available = capacity
 				
@@ -75,12 +78,15 @@ module Protocol
 		
 		# This is a window which efficiently maintains a desired capacity.
 		class LocalWindow < Window
-			def initialize(capacity = 0xFFFF, desired: nil)
+			def initialize(capacity = DEFAULT_CAPACITY, desired: nil)
 				super(capacity)
 				
+				# The desired capacity of the window, may be bigger than the initial capacity.
+				# If that is the case, we will likely send a window update to the remote end to increase the capacity.
 				@desired = desired
 			end
 			
+			# The desired capacity of the window.
 			attr_accessor :desired
 			
 			def wanted
@@ -88,16 +94,21 @@ module Protocol
 					# We must send an update which allows at least @desired bytes to be sent.
 					(@desired - @capacity) + @used
 				else
-					@used
+					super
 				end
 			end
 			
 			def limited?
 				if @desired
-					@available < @desired
+					# Do not send window updates until we are less than half the desired capacity:
+					@available < (@desired / 2)
 				else
 					super
 				end
+			end
+			
+			def inspect
+				"\#<#{self.class} used=#{@used} available=#{@available} capacity=#{@capacity} desired=#{@desired}>"
 			end
 		end
 	end

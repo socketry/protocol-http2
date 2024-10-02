@@ -33,7 +33,7 @@ describe Protocol::HTTP2::Window do
 	
 	with "#inspect" do
 		it "can generate a string representation" do
-			expect(window.inspect).to be =~ /used=0 available=65535 capacity=65535/
+			expect(window.inspect).to be =~ /available=65535 used=0 capacity=65535/
 		end
 	end
 end

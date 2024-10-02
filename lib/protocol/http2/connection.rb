@@ -215,20 +215,18 @@ module Protocol
 			def write_frame(frame)
 				synchronize do
 					@framer.write_frame(frame)
-					
-					# I tried moving this outside the synchronize block but it caused a deadlock.
-					@framer.flush
 				end
+				
+				@framer.flush
 			end
 			
 			def write_frames
 				if @framer
 					synchronize do
 						yield @framer
-						
-						# See note above.
-						@framer.flush
 					end
+					
+					@framer.flush
 				else
 					raise EOFError, "Connection closed!"
 				end

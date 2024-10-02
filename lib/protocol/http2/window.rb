@@ -72,8 +72,10 @@ module Protocol
 			end
 			
 			def inspect
-				"\#<#{self.class} used=#{@used} available=#{@available} capacity=#{@capacity}>"
+				"\#<#{self.class} available=#{@available} used=#{@used} capacity=#{@capacity}#{limited? ? " limited" : nil}>"
 			end
+			
+			alias to_s inspect
 		end
 		
 		# This is a window which efficiently maintains a desired capacity.
@@ -108,7 +110,7 @@ module Protocol
 			end
 			
 			def inspect
-				"\#<#{self.class} used=#{@used} available=#{@available} capacity=#{@capacity} desired=#{@desired}>"
+				"\#<#{self.class} available=#{@available} used=#{@used} capacity=#{@capacity} desired=#{@desired} #{limited? ? "limited" : nil}>"
 			end
 		end
 	end

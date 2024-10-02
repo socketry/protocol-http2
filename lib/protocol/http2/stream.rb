@@ -275,7 +275,7 @@ module Protocol
 			end
 			
 			protected def ignore_headers(frame)
-				# Async.logger.warn(self) {"Received headers in state: #{@state}!"}
+				# Console.warn(self) {"Received headers in state: #{@state}!"}
 			end
 			
 			def receive_headers(frame)
@@ -316,7 +316,7 @@ module Protocol
 			end
 			
 			def ignore_data(frame)
-				# Async.logger.warn(self) {"Received headers in state: #{@state}!"}
+				# Console.warn(self) {"Received headers in state: #{@state}!"}
 			end
 			
 			# DATA frames are subject to flow control and can only be sent when a stream is in the "open" or "half-closed (remote)" state.  The entire DATA frame payload is included in flow control, including the Pad Length and Padding fields if present.  If a DATA frame is received whose stream is not in "open" or "half-closed (local)" state, the recipient MUST respond with a stream error of type STREAM_CLOSED.

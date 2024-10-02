@@ -474,7 +474,7 @@ module Protocol
 				# Return if there is no window to consume:
 				return unless size > 0
 				
-				# Console.logger.debug(self) do |buffer|
+				# Console.info(self) do |buffer|
 				# 	@dependencies.each do |id, dependency|
 				# 		buffer.puts "- #{dependency}"
 				# 	end

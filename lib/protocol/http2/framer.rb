@@ -16,6 +16,8 @@ require_relative "goaway_frame"
 require_relative "window_update_frame"
 require_relative "continuation_frame"
 
+require "traces/provider"
+
 module Protocol
 	module HTTP2
 		# HTTP/2 frame type mapping as defined by the spec
@@ -106,6 +108,50 @@ module Protocol
 				end
 				
 				raise EOFError, "Could not read frame header!"
+			end
+			
+			Traces::Provider(self) do
+				def write_connection_preface
+					Traces.trace("protocol.http2.framer.write_connection_preface") do
+						super
+					end
+				end
+				
+				def read_connection_preface
+					Traces.trace("protocol.http2.framer.read_connection_preface") do
+						super
+					end
+				end
+				
+				def write_frame(frame)
+					attributes = {
+						"frame.length" => frame.length,
+						"frame.type" => frame.type,
+						"frame.flags" => frame.flags,
+						"frame.stream_id" => frame.stream_id,
+					}
+					
+					Traces.trace("protocol.http2.framer.write_frame", attributes: attributes) do
+						super
+					end
+				end
+				
+				def read_frame(maximum_frame_size = MAXIMUM_ALLOWED_FRAME_SIZE)
+					Traces.trace("protocol.http2.framer.read_frame") do |span|
+						super.tap do |frame|
+							span["frame.length"] = frame.length
+							span["frame.type"] = frame.type
+							span["frame.flags"] = frame.flags
+							span["frame.stream_id"] = frame.stream_id
+						end
+					end
+				end
+				
+				def flush
+					Traces.trace("protocol.http2.framer.flush") do
+						super
+					end
+				end
 			end
 		end
 	end

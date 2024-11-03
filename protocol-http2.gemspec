@@ -26,4 +26,5 @@ Gem::Specification.new do |spec|
 	
 	spec.add_dependency "protocol-hpack", "~> 1.4"
 	spec.add_dependency "protocol-http", "~> 0.18"
+	spec.add_dependency "traces"
 end

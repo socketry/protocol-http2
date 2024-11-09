@@ -242,6 +242,44 @@ with "client and server" do
 			expect(frame).to be(:acknowledgement?)
 		end
 		
+		it "can update concurrent streams" do
+			initial_maximum_concurrent_streams = server.maximum_concurrent_streams
+			inform "Initial maximum concurrent streams: #{initial_maximum_concurrent_streams}"
+			
+			server.send_settings([
+				[Protocol::HTTP2::Settings::MAXIMUM_CONCURRENT_STREAMS, 1]
+			])
+			
+			# It's not acknowledged until the client sends an acknowledgement:
+			expect(server).to have_attributes(
+				maximum_concurrent_streams: be == initial_maximum_concurrent_streams
+			)
+			
+			expect(client).to have_attributes(
+				maximum_concurrent_streams: be == initial_maximum_concurrent_streams
+			)
+			
+			frame = client.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::SettingsFrame)
+			
+			expect(client).to have_attributes(
+				maximum_concurrent_streams: be == 1
+			)
+			
+			frame = server.read_frame
+			expect(frame).to be_a(Protocol::HTTP2::SettingsFrame)
+			expect(frame).to be(:acknowledgement?)
+			
+			expect(server.local_settings).to have_attributes(
+				maximum_concurrent_streams: be == 1
+			)
+			
+			# The client maximum concurrent streams was not changed because the client did not `send_settings`:
+			expect(server).to have_attributes(
+				maximum_concurrent_streams: be == initial_maximum_concurrent_streams
+			)
+		end
+		
 		it "doesn't accept headers for an existing stream" do
 			stream.send_headers(nil, request_headers)
 			expect(stream.id).to be == 1

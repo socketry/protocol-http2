@@ -62,7 +62,9 @@ module Protocol
 				@remote_settings.maximum_frame_size
 			end
 			
-			# The maximum number of concurrent streams that this connection can initiate:
+			# The maximum number of concurrent streams that this connection can initiate. This is a setting that can be changed by the remote peer.
+			#
+			# It is not the same as the number of streams that can be accepted by the connection. The number of streams that can be accepted is determined by the local settings, and the number of streams that can be initiated is determined by the remote settings.
 			def maximum_concurrent_streams
 				@remote_settings.maximum_concurrent_streams
 			end

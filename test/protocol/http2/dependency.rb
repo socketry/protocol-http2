@@ -48,16 +48,14 @@ describe Protocol::HTTP2::Stream do
 		#    a
 		#   /
 		#  b
-		begin
-			a.priority = a.priority
-			server.read_frame
-			
-			priority = b.priority
-			priority.stream_dependency = a.id
-			b.priority = priority
-			
-			server.read_frame
-		end
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		
+		server.read_frame
 		
 		expect(a.dependency.children).to be == {b.id => b.dependency}
 		
@@ -68,13 +66,11 @@ describe Protocol::HTTP2::Stream do
 		#    a
 		#   / \
 		#  b   c
-		begin
-			priority = c.priority
-			priority.stream_dependency = a.id
-			c.priority = priority
-			
-			server.read_frame
-		end
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		
+		server.read_frame
 		
 		expect(a.dependency.children).to be == {b.id => b.dependency, c.id => c.dependency}
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], c.id => server.dependencies[c.id]}
@@ -84,14 +80,12 @@ describe Protocol::HTTP2::Stream do
 		#    d
 		#   / \
 		#  b   c
-		begin
-			priority = d.priority
-			priority.stream_dependency = a.id
-			priority.exclusive = true
-			d.priority = priority
-			
-			server.read_frame
-		end
+		priority = d.priority
+		priority.stream_dependency = a.id
+		priority.exclusive = true
+		d.priority = priority
+		
+		server.read_frame
 		
 		expect(a.dependency.children).to be == {d.id => d.dependency}
 		expect(d.dependency.children).to be == {b.id => b.dependency, c.id => c.dependency}
@@ -163,25 +157,23 @@ describe Protocol::HTTP2::Stream do
 		#  b   c
 		#      |
 		#      d
-		begin
-			a.priority = a.priority
-			server.read_frame
-			
-			priority = b.priority
-			priority.stream_dependency = a.id
-			b.priority = priority
-			server.read_frame
-			
-			priority = c.priority
-			priority.stream_dependency = a.id
-			c.priority = priority
-			server.read_frame
-			
-			priority = d.priority
-			priority.stream_dependency = c.id
-			d.priority = priority
-			server.read_frame
-		end
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		server.read_frame
+		
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		server.read_frame
+		
+		priority = d.priority
+		priority.stream_dependency = c.id
+		d.priority = priority
+		server.read_frame
 		
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], c.id => server.dependencies[c.id]}
 		expect(server.dependencies[c.id].children).to be == {d.id => server.dependencies[d.id]}
@@ -189,10 +181,8 @@ describe Protocol::HTTP2::Stream do
 		#    a
 		#   / \
 		#  b   d
-		begin
-			c.send_reset_stream
-			server.read_frame
-		end
+		c.send_reset_stream
+		server.read_frame
 		
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], d.id => server.dependencies[d.id]}
 		expect(server.dependencies[c.id]).to be == nil
@@ -205,20 +195,18 @@ describe Protocol::HTTP2::Stream do
 		#    a
 		#   / \
 		#  b   c
-		begin
-			a.priority = a.priority
-			server.read_frame
-			
-			priority = b.priority
-			priority.stream_dependency = a.id
-			b.priority = priority
-			server.read_frame
-			
-			priority = c.priority
-			priority.stream_dependency = a.id
-			c.priority = priority
-			server.read_frame
-		end
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		server.read_frame
+		
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		server.read_frame
 		
 		a.dependency.print_hierarchy(buffer)
 		
@@ -227,5 +215,38 @@ describe Protocol::HTTP2::Stream do
 				#<Protocol::HTTP2::Dependency id=3 parent id=1 weight=16 0 children>
 				#<Protocol::HTTP2::Dependency id=5 parent id=1 weight=16 0 children>
 		END
+	end
+	
+	it "can insert several children" do
+		a, b, c, d = 4.times.collect {client.create_stream}
+		
+		b.dependency.weight = 10
+		c.dependency.weight = 20
+		d.dependency.weight = 30
+		
+		#    a __
+		#   / \  \
+		#  b   c  d
+		
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = d.priority
+		priority.stream_dependency = a.id
+		d.priority = priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		server.read_frame
+		
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		server.read_frame
+		
+		ordered_children = server.dependencies[a.id].ordered_children
+		expect(ordered_children).to be == [b.dependency, c.dependency, d.dependency]
 	end
 end

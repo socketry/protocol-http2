@@ -58,6 +58,10 @@ module Protocol
 				@weight <=> other.weight
 			end
 			
+			def == other
+				@id == other.id
+			end
+			
 			# The connection this stream belongs to.
 			attr :connection
 			
@@ -101,13 +105,30 @@ module Protocol
 				
 				dependency.parent = self
 				
-				self.clear_cache!
+				if @ordered_children
+					# Binary search for insertion point:
+					index = @ordered_children.bsearch_index do |child|
+						child.weight >= dependency.weight
+					end
+					
+					if index
+						@ordered_children.insert(index, dependency)
+					else
+						@ordered_children.push(dependency)
+					end
+					
+					@total_weight += dependency.weight
+				end
 			end
 			
 			def remove_child(dependency)
 				@children&.delete(dependency.id)
 				
-				self.clear_cache!
+				if @ordered_children
+					# Don't do a linear search here, it can be slow. Instead, the child's parent will be set to `nil`, and we check this in {#consume_window} using `delete_if`.
+					# @ordered_children.delete(dependency)
+					@total_weight -= dependency.weight
+				end
 			end
 			
 			# An exclusive flag allows for the insertion of a new level of dependencies.  The exclusive flag causes the stream to become the sole dependency of its parent stream, causing other dependencies to become dependent on the exclusive stream.
@@ -195,11 +216,17 @@ module Protocol
 				end
 				
 				# Otherwise, allow the dependent children to use up the available window:
-				self.ordered_children&.each do |child|
-					# Compute the proportional allocation:
-					allocated = (child.weight * size) / @total_weight
-					
-					child.consume_window(allocated) if allocated > 0
+				self.ordered_children&.delete_if do |child|
+					if child.parent
+						# Compute the proportional allocation:
+						allocated = (child.weight * size) / @total_weight
+						
+						child.consume_window(allocated) if allocated > 0
+						
+						false
+					else
+						true
+					end
 				end
 			end
 			

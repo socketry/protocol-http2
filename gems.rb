@@ -20,6 +20,9 @@ group "test" do
 	gem "decode"
 	gem "rubocop"
 	
+	gem "traces"
+	gem "metrics"
+	
 	gem "bake-test"
 	gem "bake-test-external"
 end

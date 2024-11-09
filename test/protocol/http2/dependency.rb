@@ -48,16 +48,14 @@ describe Protocol::HTTP2::Stream do
 		#    a
 		#   /
 		#  b
-		begin
-			a.priority = a.priority
-			server.read_frame
-			
-			priority = b.priority
-			priority.stream_dependency = a.id
-			b.priority = priority
-			
-			server.read_frame
-		end
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		
+		server.read_frame
 		
 		expect(a.dependency.children).to be == {b.id => b.dependency}
 		
@@ -68,13 +66,11 @@ describe Protocol::HTTP2::Stream do
 		#    a
 		#   / \
 		#  b   c
-		begin
-			priority = c.priority
-			priority.stream_dependency = a.id
-			c.priority = priority
-			
-			server.read_frame
-		end
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		
+		server.read_frame
 		
 		expect(a.dependency.children).to be == {b.id => b.dependency, c.id => c.dependency}
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], c.id => server.dependencies[c.id]}
@@ -84,14 +80,12 @@ describe Protocol::HTTP2::Stream do
 		#    d
 		#   / \
 		#  b   c
-		begin
-			priority = d.priority
-			priority.stream_dependency = a.id
-			priority.exclusive = true
-			d.priority = priority
-			
-			server.read_frame
-		end
+		priority = d.priority
+		priority.stream_dependency = a.id
+		priority.exclusive = true
+		d.priority = priority
+		
+		server.read_frame
 		
 		expect(a.dependency.children).to be == {d.id => d.dependency}
 		expect(d.dependency.children).to be == {b.id => b.dependency, c.id => c.dependency}
@@ -163,25 +157,23 @@ describe Protocol::HTTP2::Stream do
 		#  b   c
 		#      |
 		#      d
-		begin
-			a.priority = a.priority
-			server.read_frame
-			
-			priority = b.priority
-			priority.stream_dependency = a.id
-			b.priority = priority
-			server.read_frame
-			
-			priority = c.priority
-			priority.stream_dependency = a.id
-			c.priority = priority
-			server.read_frame
-			
-			priority = d.priority
-			priority.stream_dependency = c.id
-			d.priority = priority
-			server.read_frame
-		end
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		server.read_frame
+		
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		server.read_frame
+		
+		priority = d.priority
+		priority.stream_dependency = c.id
+		d.priority = priority
+		server.read_frame
 		
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], c.id => server.dependencies[c.id]}
 		expect(server.dependencies[c.id].children).to be == {d.id => server.dependencies[d.id]}
@@ -189,10 +181,8 @@ describe Protocol::HTTP2::Stream do
 		#    a
 		#   / \
 		#  b   d
-		begin
-			c.send_reset_stream
-			server.read_frame
-		end
+		c.send_reset_stream
+		server.read_frame
 		
 		expect(server.dependencies[a.id].children).to be == {b.id => server.dependencies[b.id], d.id => server.dependencies[d.id]}
 		expect(server.dependencies[c.id]).to be == nil
@@ -205,20 +195,18 @@ describe Protocol::HTTP2::Stream do
 		#    a
 		#   / \
 		#  b   c
-		begin
-			a.priority = a.priority
-			server.read_frame
-			
-			priority = b.priority
-			priority.stream_dependency = a.id
-			b.priority = priority
-			server.read_frame
-			
-			priority = c.priority
-			priority.stream_dependency = a.id
-			c.priority = priority
-			server.read_frame
-		end
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		server.read_frame
+		
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		server.read_frame
 		
 		a.dependency.print_hierarchy(buffer)
 		
@@ -227,5 +215,144 @@ describe Protocol::HTTP2::Stream do
 				#<Protocol::HTTP2::Dependency id=3 parent id=1 weight=16 0 children>
 				#<Protocol::HTTP2::Dependency id=5 parent id=1 weight=16 0 children>
 		END
+	end
+	
+	it "can insert several children" do
+		a, b, c, d = 4.times.collect {client.create_stream}
+		
+		b.dependency.weight = 10
+		c.dependency.weight = 20
+		d.dependency.weight = 30
+		
+		#     a
+		#   / | \
+		#  b  c  d
+		
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = d.priority
+		priority.stream_dependency = a.id
+		d.priority = priority
+		server.read_frame
+		
+		# Force the ordered_children to be generated, so that we start triggering insertion logic:
+		ordered_children = server.dependencies[a.id].ordered_children
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		server.read_frame
+		
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		server.read_frame
+		
+		expect(ordered_children).to be == [b.dependency, c.dependency, d.dependency]
+	end
+	
+	it "handles case where index is nil during insertion" do
+		a, b, c, d = 4.times.collect { client.create_stream }
+		
+		# Assign weights such that no existing child meets the condition:
+		b.dependency.weight = 5
+		c.dependency.weight = 10
+		d.dependency.weight = 15
+		
+		# Priority tree setup:
+		#    a
+		#   /|\
+		#  b c d
+		
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		server.read_frame
+		
+		# Force the ordered_children to be generated, so that we start triggering insertion logic:
+		ordered_children = server.dependencies[a.id].ordered_children
+		
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		server.read_frame
+		
+		priority = d.priority
+		priority.stream_dependency = a.id
+		d.priority = priority
+		server.read_frame
+		
+		# Insert a new dependency with a weight that is higher than all current children:
+		new_child = client.create_stream
+		new_child.dependency.weight = 20  # Greater than the weights of b, c, and d
+		
+		# Verify that `index` would have been `nil` when finding the insertion point:
+		index = ordered_children.bsearch_index { |child| child.weight >= new_child.dependency.weight }
+		expect(index).to be_nil
+		
+		priority = new_child.priority
+		priority.stream_dependency = a.id
+		new_child.priority = priority
+		server.read_frame
+		
+		# Check that the new child is inserted at the correct place:
+		expect(ordered_children).to be(:include?, new_child.dependency)
+		expect(ordered_children.last).to be == new_child.dependency
+	end
+	
+	it "can update the weight of a child on removal" do
+		a, b, c, d = 4.times.collect { client.create_stream }
+		
+		# Assign weights such that no existing child meets the condition:
+		b.dependency.weight = 5
+		c.dependency.weight = 10
+		d.dependency.weight = 15
+	
+		# Priority tree setup:
+		#    a
+		#   /|\
+		#  b c d
+		
+		a.priority = a.priority
+		server.read_frame
+		
+		priority = b.priority
+		priority.stream_dependency = a.id
+		b.priority = priority
+		server.read_frame
+		
+		# Force the ordered_children to be generated, so that we start triggering insertion logic:
+		ordered_children = server.dependencies[a.id].ordered_children
+		
+		priority = c.priority
+		priority.stream_dependency = a.id
+		c.priority = priority
+		server.read_frame
+		
+		priority = d.priority
+		priority.stream_dependency = a.id
+		d.priority = priority
+		server.read_frame
+		
+		expect(ordered_children).to be == [b.dependency, c.dependency, d.dependency]
+		
+		# Check the total weight makes sense:
+		expect(server.dependencies[a.id].total_weight).to be == 30
+		
+		# Remove the child with the highest weight:
+		server.delete(d.id)
+		
+		# Check that the weight of the remaining children has been updated:
+		expect(server.dependencies[a.id].total_weight).to be == 15
+		
+		# Force the deletion logic to clean up `ordered_children`:
+		server.dependencies[a.id].consume_window(15)
+		
+		# Check that the child has been removed:
+		expect(ordered_children).to be == [b.dependency, c.dependency]
 	end
 end

@@ -38,7 +38,7 @@ Async do
 	]
 	
 	puts "Sending request on stream id=#{stream.id} state=#{stream.state}..."
-	stream.send_headers(nil, headers, Protocol::HTTP2::END_STREAM)
+	stream.send_headers(headers, Protocol::HTTP2::END_STREAM)
 	
 	puts "Waiting for response..."
 	$count = 0

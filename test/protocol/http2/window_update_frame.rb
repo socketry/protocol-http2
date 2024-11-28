@@ -76,7 +76,7 @@ describe Protocol::HTTP2::WindowUpdateFrame do
 			client.read_frame until client.state == :open
 			server.read_frame until server.state == :open
 			
-			stream.send_headers(nil, headers)
+			stream.send_headers(headers)
 			expect(server.read_frame).to be_a Protocol::HTTP2::HeadersFrame
 			
 			super

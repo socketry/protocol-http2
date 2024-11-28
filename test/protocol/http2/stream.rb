@@ -55,7 +55,7 @@ describe Protocol::HTTP2::Stream do
 		end
 		
 		it "can send headers" do
-			stream.send_headers(nil, [["foo", "bar"]])
+			stream.send_headers([["foo", "bar"]])
 			
 			# Pre-create the stream in idle state:
 			server_stream = server.create_stream(stream.id)
@@ -68,7 +68,7 @@ describe Protocol::HTTP2::Stream do
 		end
 		
 		it "can send request and read response" do
-			stream.send_headers(nil, [["foo", "bar"]], Protocol::HTTP2::END_STREAM)
+			stream.send_headers([["foo", "bar"]], Protocol::HTTP2::END_STREAM)
 			
 			server_stream = server.create_stream(stream.id)
 			
@@ -78,7 +78,7 @@ describe Protocol::HTTP2::Stream do
 			
 			expect(server_stream.state).to be == :half_closed_remote
 			
-			server_stream.send_headers(nil, [[":status", "200"]])
+			server_stream.send_headers([[":status", "200"]])
 			frame = client.read_frame
 			expect(frame).to be_a(Protocol::HTTP2::HeadersFrame)
 			expect(frame).not.to be(:end_stream?)
@@ -126,7 +126,7 @@ describe Protocol::HTTP2::Stream do
 		let(:server_stream) {server[stream.id]}
 		
 		def before
-			stream.send_headers(nil, headers)
+			stream.send_headers(headers)
 			server.read_frame
 			
 			super
@@ -153,7 +153,7 @@ describe Protocol::HTTP2::Stream do
 		end
 		
 		it "can send request trailers" do
-			stream.send_headers(nil, [["foo", "bar"]], Protocol::HTTP2::END_STREAM)
+			stream.send_headers([["foo", "bar"]], Protocol::HTTP2::END_STREAM)
 			
 			expect(server_stream).to receive(:receive_headers)
 			server.read_frame
@@ -162,7 +162,7 @@ describe Protocol::HTTP2::Stream do
 		end
 		
 		it "can send response and end stream" do
-			server_stream.send_headers(nil, [["foo", "bar"]], Protocol::HTTP2::END_STREAM)
+			server_stream.send_headers([["foo", "bar"]], Protocol::HTTP2::END_STREAM)
 			
 			expect(stream).to receive(:receive_headers)
 			client.read_frame
@@ -183,7 +183,7 @@ describe Protocol::HTTP2::Stream do
 		let(:server_stream) {server[stream.id]}
 		
 		def before
-			stream.send_headers(nil, headers, Protocol::HTTP2::END_STREAM)
+			stream.send_headers(headers, Protocol::HTTP2::END_STREAM)
 			server.read_frame
 			
 			super
@@ -220,7 +220,7 @@ describe Protocol::HTTP2::Stream do
 		let(:response_headers) {[[":status", "200"]]}
 		
 		def before
-			origin_stream.send_headers(nil, headers)
+			origin_stream.send_headers(headers)
 			server.read_frame
 			
 			@promised_stream = server_stream.send_push_promise(headers)
@@ -235,14 +235,14 @@ describe Protocol::HTTP2::Stream do
 			expect(stream).not.to be(:send_headers?)
 			
 			expect do
-				stream.send_headers(nil, [["foo", "bar"]])
+				stream.send_headers([["foo", "bar"]])
 			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot send headers in state: reserved_remote/)
 		end
 		
 		it "receives stream reset when writing headers in invalid state" do
 			stream.state = :open
 			
-			stream.send_headers(nil, [["foo", "bar"]])
+			stream.send_headers([["foo", "bar"]])
 			frame = server.read_frame
 				
 			frame = client.read_frame
@@ -260,7 +260,7 @@ describe Protocol::HTTP2::Stream do
 		end
 		
 		it "can send response and end stream" do
-			promised_stream.send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)
+			promised_stream.send_headers(response_headers, Protocol::HTTP2::END_STREAM)
 			expect(promised_stream.state).to be == :half_closed_remote
 			
 			expect(stream).to receive(:receive_headers)
@@ -281,7 +281,7 @@ describe Protocol::HTTP2::Stream do
 			expect(stream).not.to be(:send_headers?)
 			
 			expect do
-				stream.send_headers(nil, [["foo", "bar"]])
+				stream.send_headers([["foo", "bar"]])
 			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot send headers in state: closed/)
 		end
 		

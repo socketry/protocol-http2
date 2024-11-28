@@ -7,7 +7,6 @@ require_relative "error"
 
 require_relative "data_frame"
 require_relative "headers_frame"
-require_relative "priority_frame"
 require_relative "reset_stream_frame"
 require_relative "settings_frame"
 require_relative "push_promise_frame"
@@ -22,7 +21,7 @@ module Protocol
 		FRAMES = [
 			DataFrame,
 			HeadersFrame,
-			PriorityFrame,
+			nil, # PriorityFrame is deprecated / removed.
 			ResetStreamFrame,
 			SettingsFrame,
 			PushPromiseFrame,

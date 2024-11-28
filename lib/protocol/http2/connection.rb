@@ -5,7 +5,6 @@
 # Copyright, 2023, by Marco Concetto Rudilosso.
 
 require_relative "framer"
-require_relative "dependency"
 require_relative "flow_controlled"
 
 require "protocol/hpack"
@@ -22,10 +21,6 @@ module Protocol
 				
 				# Hash(Integer, Stream)
 				@streams = {}
-				
-				# Hash(Integer, Dependency)
-				@dependency = Dependency.new(self, 0)
-				@dependencies = {0 => @dependency}
 				
 				@framer = framer
 				
@@ -95,7 +90,6 @@ module Protocol
 			
 			def delete(id)
 				@streams.delete(id)
-				@dependencies[id]&.delete!
 			end
 			
 			# Close the underlying framer and all streams.
@@ -402,22 +396,6 @@ module Protocol
 				end
 			end
 			
-			def send_priority(stream_id, priority)
-				frame = PriorityFrame.new(stream_id)
-				frame.pack(priority)
-				
-				write_frame(frame)
-			end
-			
-			# Sets the priority for an incoming stream.
-			def receive_priority(frame)
-				if dependency = @dependencies[frame.stream_id]
-					dependency.receive_priority(frame)
-				elsif idle_stream_id?(frame.stream_id)
-					Dependency.create(self, frame.stream_id, frame.unpack)
-				end
-			end
-			
 			def receive_push_promise(frame)
 				raise ProtocolError, "Unable to receive push promise!"
 			end
@@ -470,23 +448,17 @@ module Protocol
 				end
 			end
 			
-			# Traverse active streams in order of priority and allow them to consume the available flow-control window.
-			# @param amount [Integer] the amount of data to write. Defaults to the current window capacity.
+			# Traverse active streams and allow them to consume the available flow-control window.
+			# @parameter amount [Integer] the amount of data to write. Defaults to the current window capacity.
 			def consume_window(size = self.available_size)
 				# Return if there is no window to consume:
 				return unless size > 0
 				
-				# Console.info(self) do |buffer|
-				# 	@dependencies.each do |id, dependency|
-				# 		buffer.puts "- #{dependency}"
-				# 	end
-				# 
-				# 	buffer.puts
-				# 
-				# 	@dependency.print_hierarchy(buffer)
-				# end
-				
-				@dependency.consume_window(size)
+				@streams.each_value do |stream|
+					if stream.active?
+						stream.window_updated(size)
+					end
+				end
 			end
 			
 			def receive_window_update(frame)

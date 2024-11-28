@@ -28,6 +28,10 @@ module Protocol
 				if @state == :new
 					@framer.read_connection_preface
 					
+					# We don't support RFC7540 priorities:
+					settings = settings.to_a
+					settings << [Settings::NO_RFC7540_PRIORITIES, 1]
+					
 					send_settings(settings)
 					
 					read_frame do |frame|

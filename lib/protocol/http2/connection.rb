@@ -400,6 +400,18 @@ module Protocol
 				raise ProtocolError, "Unable to receive push promise!"
 			end
 			
+			def receive_priority_update(frame)
+				if frame.stream_id != 0
+					raise ProtocolError, "Invalid stream id: #{frame.stream_id}"
+				end
+				
+				stream_id, value = frame.unpack
+				
+				if stream = @streams[stream_id]
+					stream.priority = Protocol::HTTP::Header::Priority.new(value)
+				end
+			end
+			
 			def client_stream_id?(id)
 				id.odd?
 			end

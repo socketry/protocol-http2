@@ -14,6 +14,7 @@ require_relative "ping_frame"
 require_relative "goaway_frame"
 require_relative "window_update_frame"
 require_relative "continuation_frame"
+require_relative "priority_update_frame"
 
 module Protocol
 	module HTTP2
@@ -29,6 +30,7 @@ module Protocol
 			GoawayFrame,
 			WindowUpdateFrame,
 			ContinuationFrame,
+			PriorityUpdateFrame,
 		].freeze
 		
 		# Default connection "fast-fail" preamble string as defined by the spec.

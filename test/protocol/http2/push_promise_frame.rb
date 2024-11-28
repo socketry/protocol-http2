@@ -60,7 +60,7 @@ describe Protocol::HTTP2::PushPromiseFrame do
 		
 		it "sends push promise to client" do
 			# Client sends a request:
-			stream.send_headers(nil, request_headers)
+			stream.send_headers(request_headers)
 			
 			# Server receives request:
 			expect(server.read_frame).to be_a Protocol::HTTP2::HeadersFrame
@@ -83,7 +83,7 @@ describe Protocol::HTTP2::PushPromiseFrame do
 		
 		it "fails if the same push promise is sent twice" do
 			# Client sends a request:
-			stream.send_headers(nil, request_headers)
+			stream.send_headers(request_headers)
 			
 			# Server receives request:
 			expect(server.read_frame).to be_a Protocol::HTTP2::HeadersFrame

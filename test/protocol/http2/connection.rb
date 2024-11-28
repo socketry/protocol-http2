@@ -78,7 +78,7 @@ describe Protocol::HTTP2::Connection do
 		expect(connection).to receive(:valid_remote_stream_id?).and_return(true)
 		
 		invalid_headers_frame = Protocol::HTTP2::HeadersFrame.new(1)
-		invalid_headers_frame.pack(nil, "\xFF")
+		invalid_headers_frame.pack("\xFF")
 		invalid_headers_frame.write(stream)
 		stream.rewind
 		
@@ -171,7 +171,7 @@ with "client and server" do
 			expect(client).not.to be(:idle_stream_id?, stream.id)
 			expect(server).to be(:idle_stream_id?, stream.id)
 			
-			stream.send_headers(nil, request_headers)
+			stream.send_headers(request_headers)
 			
 			server.read_frame
 			
@@ -190,6 +190,7 @@ with "client and server" do
 		end
 		
 		it "can create new stream and send response" do
+			# First argument is deprecated priority.
 			stream.send_headers(nil, request_headers)
 			expect(stream.id).to be == 1
 			
@@ -212,7 +213,7 @@ with "client and server" do
 			expect(data_frame.unpack).to be == request_data
 			expect(server.streams[1].state).to be == :half_closed_remote
 			
-			server.streams[1].send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)
+			server.streams[1].send_headers(response_headers, Protocol::HTTP2::END_STREAM)
 			
 			expect(stream).to receive(:process_headers) do |frame|
 				headers = super(frame)
@@ -227,7 +228,7 @@ with "client and server" do
 		end
 		
 		it "can update settings while sending response" do
-			stream.send_headers(nil, request_headers)
+			stream.send_headers(request_headers)
 			server.read_frame
 			
 			client.send_settings([
@@ -281,14 +282,14 @@ with "client and server" do
 		end
 		
 		it "doesn't accept headers for an existing stream" do
-			stream.send_headers(nil, request_headers)
+			stream.send_headers(request_headers)
 			expect(stream.id).to be == 1
 			
 			server.read_frame
 			expect(server.streams).not.to be(:empty?)
 			expect(server.streams[1].state).to be == :open
 			
-			stream.send_headers(nil, request_headers)
+			stream.send_headers(request_headers)
 			
 			# Simulate a closed stream:
 			server.streams.clear
@@ -299,7 +300,7 @@ with "client and server" do
 		end
 		
 		it "client can handle graceful shutdown" do
-			stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			
 			# Establish request stream on server:
 			server.read_frame
@@ -308,7 +309,7 @@ with "client and server" do
 			server.send_goaway(0)
 			
 			another_stream = client.create_stream
-			another_stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
+			another_stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			
 			expect(client.read_frame).to be_a Protocol::HTTP2::GoawayFrame
 			expect(client.remote_stream_id).to be == 1
@@ -321,7 +322,7 @@ with "client and server" do
 			# The pre-existing stream is still functional:
 			expect(server.streams[1].state).to be == :half_closed_remote
 			
-			server.streams[1].send_headers(nil, response_headers, Protocol::HTTP2::END_STREAM)
+			server.streams[1].send_headers(response_headers, Protocol::HTTP2::END_STREAM)
 			
 			client.read_frame
 			
@@ -329,7 +330,7 @@ with "client and server" do
 		end
 		
 		it "client can handle non-graceful shutdown" do
-			stream.send_headers(nil, request_headers, Protocol::HTTP2::END_STREAM)
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			
 			# Establish request stream on server:
 			server.read_frame
@@ -350,7 +351,7 @@ with "client and server" do
 		end
 		
 		it "can stream data" do
-			stream.send_headers(nil, request_headers)
+			stream.send_headers(request_headers)
 			stream.send_data("A")
 			stream.send_data("B")
 			stream.send_data("C")
@@ -384,7 +385,7 @@ with "client and server" do
 		client.local_settings.current.maximum_concurrent_streams = 0
 		client_stream = client.create_stream
 		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
-		client_stream.send_headers(nil, request_headers)
+		client_stream.send_headers(request_headers)
 
 		expect(server).to receive(:receive_headers) do |frame|
 			headers = super(frame)
@@ -399,7 +400,7 @@ with "client and server" do
 		server.local_settings.current.maximum_concurrent_streams = 0
 		client_stream = client.create_stream
 		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
-		client_stream.send_headers(nil, request_headers)
+		client_stream.send_headers(request_headers)
 
 		expect { server.read_frame }.to raise_exception(Protocol::HTTP2::ProtocolError)
 	end
@@ -408,7 +409,7 @@ with "client and server" do
 		server.local_settings.current.maximum_concurrent_streams = 0
 		server_stream = server.create_stream
 		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
-		server_stream.send_headers(nil, request_headers)
+		server_stream.send_headers(request_headers)
 
 		expect(client).to receive(:receive_headers) do |frame|
 			headers = super(frame)
@@ -423,7 +424,7 @@ with "client and server" do
 		client.local_settings.current.maximum_concurrent_streams = 0
 		server_stream = server.create_stream
 		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
-		server_stream.send_headers(nil, request_headers)
+		server_stream.send_headers(request_headers)
 
 		expect { client.read_frame }.to raise_exception(Protocol::HTTP2::ProtocolError)
 	end

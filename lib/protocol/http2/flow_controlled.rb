@@ -78,7 +78,7 @@ module Protocol
 			end
 			
 			# The window has been expanded by the given amount.
-			# @param size [Integer] the maximum amount of data to send.
+			# @parameter size [Integer] the maximum amount of data to send.
 			# @return [Boolean] whether the window update was used or not.
 			def window_updated(size)
 				return false

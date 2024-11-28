@@ -34,7 +34,7 @@ module Protocol
 			# The base class does not have any specific type index:
 			TYPE = nil
 			
-			# @param length [Integer] the length of the payload, or nil if the header has not been read yet.
+			# @parameter length [Integer] the length of the payload, or nil if the header has not been read yet.
 			def initialize(stream_id = 0, flags = 0, type = self.class::TYPE, length = nil, payload = nil)
 				@stream_id = stream_id
 				@flags = flags
@@ -134,7 +134,7 @@ module Protocol
 			
 			# Decodes common 9-byte header.
 			#
-			# @param buffer [String]
+			# @parameter buffer [String]
 			def self.parse_header(buffer)
 				length_hi, length_lo, type, flags, stream_id = buffer.unpack(HEADER_FORMAT)
 				length = (length_hi << LENGTH_HISHIFT) | length_lo

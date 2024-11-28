@@ -9,14 +9,13 @@ require "protocol/http2/connection_context"
 require "protocol/http2/a_frame"
 
 describe Protocol::HTTP2::HeadersFrame do
-	let(:priority) {Protocol::HTTP2::Priority.new(true, 42, 7)}
 	let(:data) {"Hello World!"}
 	let(:frame) {subject.new}
 	
 	it_behaves_like Protocol::HTTP2::AFrame do
 		def before
 			frame.set_flags(Protocol::HTTP2::END_HEADERS)
-			frame.pack priority, data
+			frame.pack data
 			
 			super
 		end
@@ -24,25 +23,28 @@ describe Protocol::HTTP2::HeadersFrame do
 	
 	with "#pack" do
 		it "adds appropriate padding" do
-			frame.pack nil, data
+			frame.pack data
 			
 			expect(frame.length).to be == 12
 			expect(frame).not.to be(:priority?)
 		end
 		
-		it "packs priority with no padding" do
-			frame.pack priority, data
+		it "ignores priority data" do
+			frame.pack "xxxxx" + data
+			frame.set_flags(Protocol::HTTP2::PRIORITY)
 			
-			expect(priority.pack.size).to be == 5
-			expect(frame.length).to be == (5 + data.bytesize)
+			expect(frame.length).to be == 17
+			expect(frame).to be(:priority?)
+			
+			expect(frame.unpack).to be == data
 		end
 	end
 	
 	with "#unpack" do
 		it "removes padding" do
-			frame.pack nil, data
+			frame.pack data
 			
-			expect(frame.unpack).to be == [nil, data]
+			expect(frame.unpack).to be == data
 		end
 	end
 	
@@ -50,7 +52,7 @@ describe Protocol::HTTP2::HeadersFrame do
 		let(:stream) {StringIO.new}
 		
 		def before
-			frame.pack nil, "Hello World", maximum_size: 8
+			frame.pack "Hello World", maximum_size: 8
 			
 			super
 		end
@@ -119,7 +121,7 @@ describe Protocol::HTTP2::HeadersFrame do
 		
 		it "rejects headers frame that exceeds maximum frame size" do
 			frame.stream_id = stream.id
-			frame.pack nil, "\0" * (server.local_settings.maximum_frame_size + 1)
+			frame.pack "\0" * (server.local_settings.maximum_frame_size + 1)
 			
 			client.write_frame(frame)
 			

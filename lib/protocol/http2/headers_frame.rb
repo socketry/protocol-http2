@@ -6,7 +6,6 @@
 require_relative "frame"
 require_relative "padded"
 require_relative "continuation_frame"
-require_relative "priority_frame"
 
 module Protocol
 	module HTTP2
@@ -41,22 +40,15 @@ module Protocol
 				data = super
 				
 				if priority?
-					priority = Priority.unpack(data)
+					# We no longer support priority frames, so strip the data:
 					data = data.byteslice(5, data.bytesize - 5)
 				end
 				
-				return priority, data
+				return data
 			end
 			
-			def pack(priority, data, *arguments, **options)
+			def pack(data, *arguments, **options)
 				buffer = String.new.b
-				
-				if priority
-					buffer << priority.pack
-					set_flags(PRIORITY)
-				else
-					clear_flags(PRIORITY)
-				end
 				
 				buffer << data
 				

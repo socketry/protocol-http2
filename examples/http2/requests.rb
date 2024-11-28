@@ -35,7 +35,7 @@ Async do
 			]
 			
 			puts "Sending request on stream id=#{stream.id} state=#{stream.state}..."
-			stream.send_headers(nil, headers, Protocol::HTTP2::END_STREAM)
+			stream.send_headers(headers, Protocol::HTTP2::END_STREAM)
 		
 			def stream.process_headers(frame)
 				headers = super

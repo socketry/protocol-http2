@@ -4,7 +4,6 @@
 # Copyright, 2019-2024, by Samuel Williams.
 
 require_relative "connection"
-require_relative "dependency"
 
 module Protocol
 	module HTTP2
@@ -77,8 +76,6 @@ module Protocol
 				
 				@local_window = Window.new(@connection.local_settings.initial_window_size)
 				@remote_window = Window.new(@connection.remote_settings.initial_window_size)
-				
-				@dependency = Dependency.create(@connection, @id)
 			end
 			
 			# The connection this stream belongs to.
@@ -90,26 +87,8 @@ module Protocol
 			# Stream state, e.g. `idle`, `closed`.
 			attr_accessor :state
 			
-			attr :dependency
-			
 			attr :local_window
 			attr :remote_window
-			
-			def weight
-				@dependency.weight
-			end
-			
-			def priority
-				@dependency.priority
-			end
-			
-			def priority= priority
-				@dependency.priority = priority
-			end
-			
-			def parent=(stream)
-				@dependency.parent = stream.dependency
-			end
 			
 			def maximum_frame_size
 				@connection.available_frame_size
@@ -141,13 +120,13 @@ module Protocol
 				@state == :idle or @state == :reserved_local or @state == :open or @state == :half_closed_remote
 			end
 			
-			private def write_headers(priority, headers, flags = 0)
+			private def write_headers(headers, flags = 0)
 				frame = HeadersFrame.new(@id, flags)
 				
 				@connection.write_frames do |framer|
 					data = @connection.encode_headers(headers)
 					
-					frame.pack(priority, data, maximum_size: @connection.maximum_frame_size)
+					frame.pack(data, maximum_size: @connection.maximum_frame_size)
 					
 					framer.write_frame(frame)
 				end
@@ -157,6 +136,10 @@ module Protocol
 			
 			# The HEADERS frame is used to open a stream, and additionally carries a header block fragment. HEADERS frames can be sent on a stream in the "idle", "reserved (local)", "open", or "half-closed (remote)" state.
 			def send_headers(*arguments)
+				if arguments.first.nil?
+					arguments.shift # Remove nil priority.
+				end
+				
 				if @state == :idle
 					frame = write_headers(*arguments)
 					
@@ -236,7 +219,7 @@ module Protocol
 			end
 			
 			# Transition the stream into the closed state.
-			# @param error_code [Integer] the error code if the stream was closed due to a stream reset.
+			# @parameter error_code [Integer] the error code if the stream was closed due to a stream reset.
 			def close!(error_code = nil)
 				@state = :closed
 				@connection.delete(@id)
@@ -265,11 +248,7 @@ module Protocol
 			
 			def process_headers(frame)
 				# Receiving request headers:
-				priority, data = frame.unpack
-				
-				if priority
-					@dependency.process_priority(priority)
-				end
+				data = frame.unpack
 				
 				@connection.decode_headers(data)
 			end
@@ -401,7 +380,7 @@ module Protocol
 			end
 			
 			# Server push is semantically equivalent to a server responding to a request; however, in this case, that request is also sent by the server, as a PUSH_PROMISE frame.
-			# @param headers [Hash] contains a complete set of request header fields that the server attributes to the request.
+			# @parameter headers [Hash] contains a complete set of request header fields that the server attributes to the request.
 			def send_push_promise(headers)
 				if @state == :open or @state == :half_closed_remote
 					promised_stream = self.create_push_promise_stream(headers)
@@ -427,7 +406,6 @@ module Protocol
 				headers = @connection.decode_headers(data)
 				
 				stream = self.accept_push_promise_stream(promised_stream_id, headers)
-				stream.parent = self
 				stream.reserved_remote!
 				
 				return stream, headers

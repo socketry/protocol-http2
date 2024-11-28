@@ -191,7 +191,7 @@ with "client and server" do
 		
 		it "can create new stream and send response" do
 			# First argument is deprecated priority.
-			stream.send_headers(nil, request_headers)
+			stream.send_headers(request_headers)
 			expect(stream.id).to be == 1
 			
 			expect(server).to receive(:receive_headers) do |frame|

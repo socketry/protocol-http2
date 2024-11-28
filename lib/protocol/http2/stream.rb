@@ -136,10 +136,6 @@ module Protocol
 			
 			# The HEADERS frame is used to open a stream, and additionally carries a header block fragment. HEADERS frames can be sent on a stream in the "idle", "reserved (local)", "open", or "half-closed (remote)" state.
 			def send_headers(*arguments)
-				if arguments.first.nil?
-					arguments.shift # Remove nil priority.
-				end
-				
 				if @state == :idle
 					frame = write_headers(*arguments)
 					

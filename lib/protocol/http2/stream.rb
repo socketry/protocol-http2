@@ -92,6 +92,7 @@ module Protocol
 			attr :local_window
 			attr :remote_window
 			
+			# @attribute [Protocol::HTTP::Header::Priority | Nil] the priority of the stream.
 			attr_accessor :priority
 			
 			def maximum_frame_size

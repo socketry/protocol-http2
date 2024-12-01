@@ -78,7 +78,7 @@ describe Protocol::HTTP2::Client do
 		# The server immediately sends its own settings frame...
 		frame = framer.read_frame
 		expect(frame).to be_a Protocol::HTTP2::SettingsFrame
-		expect(frame.unpack).to be == server_settings
+		expect(frame.unpack).to be == server_settings + [[Protocol::HTTP2::Settings::NO_RFC7540_PRIORITIES, 1]]
 		
 		# And then it acknowledges the client settings:
 		frame = framer.read_frame

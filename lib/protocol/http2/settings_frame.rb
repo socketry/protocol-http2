@@ -27,7 +27,21 @@ module Protocol
 				:maximum_header_list_size=,
 				nil,
 				:enable_connect_protocol=,
+				:no_rfc7540_priorities=,
 			]
+			
+			def initialize
+				# These limits are taken from the RFC:
+				# https://tools.ietf.org/html/rfc7540#section-6.5.2
+				@header_table_size = 4096
+				@enable_push = 1
+				@maximum_concurrent_streams = 0xFFFFFFFF
+				@initial_window_size = 0xFFFF # 2**16 - 1
+				@maximum_frame_size = 0x4000 # 2**14
+				@maximum_header_list_size = 0xFFFFFFFF
+				@enable_connect_protocol = 0
+				@no_rfc7540_priorities = 0
+			end
 			
 			# Allows the sender to inform the remote endpoint of the maximum size of the header compression table used to decode header blocks, in octets.
 			attr_accessor :header_table_size
@@ -91,16 +105,18 @@ module Protocol
 				@enable_connect_protocol == 1
 			end
 			
-			def initialize
-				# These limits are taken from the RFC:
-				# https://tools.ietf.org/html/rfc7540#section-6.5.2
-				@header_table_size = 4096
-				@enable_push = 1
-				@maximum_concurrent_streams = 0xFFFFFFFF
-				@initial_window_size = 0xFFFF # 2**16 - 1
-				@maximum_frame_size = 0x4000 # 2**14
-				@maximum_header_list_size = 0xFFFFFFFF
-				@enable_connect_protocol = 0
+			attr :no_rfc7540_priorities
+			
+			def no_rfc7540_priorities= value
+				if value == 0 or value == 1
+					@no_rfc7540_priorities = value
+				else
+					raise ProtocolError, "Invalid value for no_rfc7540_priorities: #{value}"
+				end
+			end
+			
+			def no_rfc7540_priorities?
+				@no_rfc7540_priorities == 1
 			end
 			
 			def update(changes)
@@ -109,40 +125,6 @@ module Protocol
 						self.send(name, value)
 					end
 				end
-			end
-			
-			def difference(other)
-				changes = []
-				
-				if @header_table_size != other.header_table_size
-					changes << [HEADER_TABLE_SIZE, @header_table_size]
-				end
-				
-				if @enable_push != other.enable_push
-					changes << [ENABLE_PUSH, @enable_push]
-				end
-				
-				if @maximum_concurrent_streams != other.maximum_concurrent_streams
-					changes << [MAXIMUM_CONCURRENT_STREAMS, @maximum_concurrent_streams]
-				end
-				
-				if @initial_window_size != other.initial_window_size
-					changes << [INITIAL_WINDOW_SIZE, @initial_window_size]
-				end
-				
-				if @maximum_frame_size != other.maximum_frame_size
-					changes << [MAXIMUM_FRAME_SIZE, @maximum_frame_size]
-				end
-				
-				if @maximum_header_list_size != other.maximum_header_list_size
-					changes << [MAXIMUM_HEADER_LIST_SIZE, @maximum_header_list_size]
-				end
-				
-				if @enable_connect_protocol != other.enable_connect_protocol
-					changes << [ENABLE_CONNECT_PROTOCOL, @enable_connect_protocol]
-				end
-				
-				return changes
 			end
 		end
 		

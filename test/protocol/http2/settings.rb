@@ -73,6 +73,23 @@ describe Protocol::HTTP2::Settings do
 		end
 	end
 	
+	with "#no_rfc7540_priorities" do
+		it "is disabled by default" do
+			expect(settings.no_rfc7540_priorities).to be == 0
+			expect(settings).not.to be(:no_rfc7540_priorities?)
+		end
+		
+		it "can be enabled" do
+			settings.no_rfc7540_priorities = 1
+			expect(settings.no_rfc7540_priorities).to be == 1
+			expect(settings).to be(:no_rfc7540_priorities?)
+		end
+		
+		it "only accepts valid values" do
+			expect{settings.no_rfc7540_priorities = 2}.to raise_exception(Protocol::HTTP2::ProtocolError)
+		end
+	end
+	
 	it "has the expected defaults" do
 		expect(settings).to have_attributes(
 			header_table_size: be == 4096,
@@ -81,7 +98,8 @@ describe Protocol::HTTP2::Settings do
 			initial_window_size: be == 0xFFFF,
 			maximum_frame_size: be == 0x4000,
 			maximum_header_list_size: be == 0xFFFFFFFF,
-			enable_connect_protocol: be == 0
+			enable_connect_protocol: be == 0,
+			no_rfc7540_priorities: be == 0,
 		)
 	end
 	
@@ -105,29 +123,6 @@ describe Protocol::HTTP2::Settings do
 			maximum_header_list_size: be == 100000,
 			enable_connect_protocol: be == 1
 		)
-	end
-	
-	it "can compute the difference between two settings" do
-		other = subject.new
-		other.update({
-			Protocol::HTTP2::Settings::HEADER_TABLE_SIZE => 100,
-			Protocol::HTTP2::Settings::ENABLE_PUSH => 0,
-			Protocol::HTTP2::Settings::MAXIMUM_CONCURRENT_STREAMS => 10,
-			Protocol::HTTP2::Settings::INITIAL_WINDOW_SIZE => 1000,
-			Protocol::HTTP2::Settings::MAXIMUM_FRAME_SIZE => 20000,
-			Protocol::HTTP2::Settings::MAXIMUM_HEADER_LIST_SIZE => 100000,
-			Protocol::HTTP2::Settings::ENABLE_CONNECT_PROTOCOL => 1
-		})
-		
-		expect(other.difference(settings)).to be == [
-			[Protocol::HTTP2::Settings::HEADER_TABLE_SIZE, 100],
-			[Protocol::HTTP2::Settings::ENABLE_PUSH, 0],
-			[Protocol::HTTP2::Settings::MAXIMUM_CONCURRENT_STREAMS, 10],
-			[Protocol::HTTP2::Settings::INITIAL_WINDOW_SIZE, 1000],
-			[Protocol::HTTP2::Settings::MAXIMUM_FRAME_SIZE, 20000],
-			[Protocol::HTTP2::Settings::MAXIMUM_HEADER_LIST_SIZE, 100000],
-			[Protocol::HTTP2::Settings::ENABLE_CONNECT_PROTOCOL, 1]
-		]
 	end
 end
 

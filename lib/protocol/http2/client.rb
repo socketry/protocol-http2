@@ -29,15 +29,25 @@ module Protocol
 					@framer.write_connection_preface
 					
 					# We don't support RFC7540 priorities:
-					settings = settings.to_a
-					settings << [Settings::NO_RFC7540_PRIORITIES, 1]
+					if settings.is_a?(Hash)
+						settings = settings.dup
+					else
+						settings = settings.to_h
+					end
+					
+					unless settings.key?(Settings::NO_RFC7540_PRIORITIES)
+						settings = settings.dup
+						settings[Settings::NO_RFC7540_PRIORITIES] = 1
+					end
 					
 					send_settings(settings)
 					
 					yield if block_given?
 					
 					read_frame do |frame|
-						raise ProtocolError, "First frame must be #{SettingsFrame}, but got #{frame.class}" unless frame.is_a? SettingsFrame
+						unless frame.is_a? SettingsFrame
+							raise ProtocolError, "First frame must be #{SettingsFrame}, but got #{frame.class}"
+						end
 					end
 				else
 					raise ProtocolError, "Cannot send connection preface in state #{@state}"

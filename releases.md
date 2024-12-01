@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.22.0
 
 ### Added Priority Update Frame and Stream Priority
 

@@ -30,6 +30,12 @@ module Protocol
 			GoawayFrame,
 			WindowUpdateFrame,
 			ContinuationFrame,
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
 			PriorityUpdateFrame,
 		].freeze
 		

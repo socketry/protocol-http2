@@ -24,7 +24,7 @@ module Protocol
 			def unpack
 				data = super
 				
-				prioritized_stream_id = data.unpack(FORMAT)
+				prioritized_stream_id = data.unpack1(FORMAT)
 				
 				return prioritized_stream_id, data.byteslice(4, data.bytesize - 4)
 			end

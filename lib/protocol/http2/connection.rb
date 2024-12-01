@@ -8,6 +8,7 @@ require_relative "framer"
 require_relative "flow_controlled"
 
 require "protocol/hpack"
+require "protocol/http/header/priority"
 
 module Protocol
 	module HTTP2
@@ -407,6 +408,7 @@ module Protocol
 				
 				stream_id, value = frame.unpack
 				
+				# Apparently you can set the priority of idle streams, but I'm not sure why that makes sense, so for now let's ignore it.
 				if stream = @streams[stream_id]
 					stream.priority = Protocol::HTTP::Header::Priority.new(value)
 				end

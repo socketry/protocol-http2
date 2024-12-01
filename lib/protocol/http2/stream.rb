@@ -76,6 +76,8 @@ module Protocol
 				
 				@local_window = Window.new(@connection.local_settings.initial_window_size)
 				@remote_window = Window.new(@connection.remote_settings.initial_window_size)
+				
+				@priority = nil
 			end
 			
 			# The connection this stream belongs to.
@@ -89,6 +91,9 @@ module Protocol
 			
 			attr :local_window
 			attr :remote_window
+			
+			# @attribute [Protocol::HTTP::Header::Priority | Nil] the priority of the stream.
+			attr_accessor :priority
 			
 			def maximum_frame_size
 				@connection.available_frame_size

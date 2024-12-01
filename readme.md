@@ -4,27 +4,15 @@ Provides a low-level implementation of the HTTP/2 protocol.
 
 [![Development Status](https://github.com/socketry/protocol-http2/workflows/Test/badge.svg)](https://github.com/socketry/protocol-http2/actions?workflow=Test)
 
-## Installation
-
-Add this line to your application's Gemfile:
-
-``` ruby
-gem 'protocol-http2'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install protocol-http2
-
 ## Usage
 
 Please see the [project documentation](https://socketry.github.io/protocol-http2/) for more details.
 
   - [Getting Started](https://socketry.github.io/protocol-http2/guides/getting-started/index) - This guide explains how to use the `protocol-http2` gem to implement a basic HTTP/2 client.
+
+## See Also
+
+  - [Async::HTTP](https://github.com/socketry/async-http) - A high-level HTTP client and server implementation.
 
 ## Contributing
 

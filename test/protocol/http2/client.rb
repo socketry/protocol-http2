@@ -34,7 +34,7 @@ describe Protocol::HTTP2::Client do
 			
 			client_settings_frame = framer.read_frame
 			expect(client_settings_frame).to be_a Protocol::HTTP2::SettingsFrame
-			expect(client_settings_frame.unpack).to be == settings + [[Protocol::HTTP2::Settings::NO_RFC7540_PRIORITIES, 1]]
+			expect(client_settings_frame.unpack).to be == settings
 			
 			# Fake (empty) server settings:
 			server_settings_frame = Protocol::HTTP2::SettingsFrame.new
@@ -61,16 +61,6 @@ describe Protocol::HTTP2::Client do
 				framer.write_frame(data_frame)
 			end
 		end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /First frame must be Protocol::HTTP2::SettingsFrame/)
-	end
-	
-	it "should send connection preface with no RFC7540 priorities" do
-		server_settings_frame = client.send_connection_preface({}) do
-			client_settings_frame = server.read_connection_preface({})
-			
-			expect(client_settings_frame.unpack).to be == [[Protocol::HTTP2::Settings::NO_RFC7540_PRIORITIES, 1]]
-		end
-		
-		expect(server_settings_frame.unpack).to be == [[Protocol::HTTP2::Settings::NO_RFC7540_PRIORITIES, 1]]
 	end
 	
 	it "can generate a stream id" do

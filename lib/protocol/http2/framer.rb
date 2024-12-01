@@ -22,7 +22,7 @@ module Protocol
 		FRAMES = [
 			DataFrame,
 			HeadersFrame,
-			nil, # PriorityFrame is deprecated / removed.
+			nil, # PriorityFrame is deprecated and ignored, instead consider using PriorityUpdateFrame instead.
 			ResetStreamFrame,
 			SettingsFrame,
 			PushPromiseFrame,

@@ -28,18 +28,6 @@ module Protocol
 				if @state == :new
 					@framer.write_connection_preface
 					
-					# We don't support RFC7540 priorities:
-					if settings.is_a?(Hash)
-						settings = settings.dup
-					else
-						settings = settings.to_h
-					end
-					
-					unless settings.key?(Settings::NO_RFC7540_PRIORITIES)
-						settings = settings.dup
-						settings[Settings::NO_RFC7540_PRIORITIES] = 1
-					end
-					
 					send_settings(settings)
 					
 					yield if block_given?

@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
 	spec.version = Protocol::HTTP2::VERSION
 	
 	spec.summary = "A low level implementation of the HTTP/2 protocol."
-	spec.authors = ["Samuel Williams", "Yuta Iwama", "Marco Concetto Rudilosso", "Olle Jonsson"]
+	spec.authors = ["Samuel Williams", "Yuta Iwama", "Adam Petro", "Marco Concetto Rudilosso", "Olle Jonsson"]
 	spec.license = "MIT"
 	
 	spec.cert_chain  = ["release.cert"]

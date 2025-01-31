@@ -1,6 +1,7 @@
 # frozen_string_literal: true
+
 # Released under the MIT License.
-# Copyright, 2019-2024, by Samuel Williams.
+# Copyright, 2024-2025, by Samuel Williams.
 
 require "protocol/http2/priority_update_frame"
 

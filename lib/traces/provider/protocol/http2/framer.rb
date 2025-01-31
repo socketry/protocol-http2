@@ -8,18 +8,24 @@ require_relative "../../../../protocol/http2/framer"
 
 Traces::Provider(Protocol::HTTP2::Framer) do
 	def write_connection_preface
+		return super unless Traces.active?
+		
 		Traces.trace("protocol.http2.framer.write_connection_preface") do
 			super
 		end
 	end
 	
 	def read_connection_preface
+		return super unless Traces.active?
+		
 		Traces.trace("protocol.http2.framer.read_connection_preface") do
 			super
 		end
 	end
 	
 	def write_frame(frame)
+		return super unless Traces.active?
+		
 		attributes = {
 			"frame.length" => frame.length,
 			"frame.class" => frame.class.name,
@@ -34,6 +40,8 @@ Traces::Provider(Protocol::HTTP2::Framer) do
 	end
 	
 	def read_frame(...)
+		return super unless Traces.active?
+		
 		Traces.trace("protocol.http2.framer.read_frame") do |span|
 			super.tap do |frame|
 				span["frame.length"] = frame.length
@@ -45,6 +53,8 @@ Traces::Provider(Protocol::HTTP2::Framer) do
 	end
 	
 	def flush
+		return super unless Traces.active?
+		
 		Traces.trace("protocol.http2.framer.flush") do
 			super
 		end

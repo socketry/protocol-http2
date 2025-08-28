@@ -244,7 +244,7 @@ describe Protocol::HTTP2::Stream do
 			
 			stream.send_headers([["foo", "bar"]])
 			frame = server.read_frame
-				
+			
 			frame = client.read_frame
 			expect(frame).to be_a(Protocol::HTTP2::ResetStreamFrame)
 		end

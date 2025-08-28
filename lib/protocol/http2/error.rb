@@ -57,7 +57,7 @@ module Protocol
 		# connection must be aborted.
 		class HandshakeError < Error
 		end
-
+		
 		# Raised by stream or connection handlers, results in GOAWAY frame
 		# which signals termination of the current connection. You *cannot*
 		# recover from this exception, or any exceptions subclassed from it.

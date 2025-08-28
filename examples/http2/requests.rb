@@ -36,7 +36,7 @@ Async do
 			
 			puts "Sending request on stream id=#{stream.id} state=#{stream.state}..."
 			stream.send_headers(headers, Protocol::HTTP2::END_STREAM)
-		
+			
 			def stream.process_headers(frame)
 				headers = super
 				puts "Stream #{self.id}: Got response headers: #{headers} (#{frame.end_stream?})"

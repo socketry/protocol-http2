@@ -9,15 +9,22 @@ module Protocol
 	module HTTP2
 		ACKNOWLEDGEMENT = 0x1
 		
+		# Provides acknowledgement functionality for frames that support it.
+		# This module handles setting and checking acknowledgement flags on frames.
 		module Acknowledgement
+			# Check if the frame is an acknowledgement.
+			# @returns [Boolean] True if the acknowledgement flag is set.
 			def acknowledgement?
 				flag_set?(ACKNOWLEDGEMENT)
 			end
 			
+			# Mark this frame as an acknowledgement.
 			def acknowledgement!
 				set_flags(ACKNOWLEDGEMENT)
 			end
 			
+			# Create an acknowledgement frame for this frame.
+			# @returns [Frame] A new frame marked as an acknowledgement.
 			def acknowledge
 				frame = self.class.new
 				
@@ -41,14 +48,20 @@ module Protocol
 			
 			include Acknowledgement
 			
+			# Check if this frame applies to the connection level.
+			# @returns [Boolean] Always returns true for PING frames.
 			def connection?
 				true
 			end
 			
+			# Apply this PING frame to a connection for processing.
+			# @parameter connection [Connection] The connection to apply the frame to.
 			def apply(connection)
 				connection.receive_ping(self)
 			end
 			
+			# Create an acknowledgement PING frame with the same payload.
+			# @returns [PingFrame] A new PING frame marked as an acknowledgement.
 			def acknowledge
 				frame = super
 				
@@ -57,6 +70,9 @@ module Protocol
 				return frame
 			end
 			
+			# Read and validate the PING frame payload.
+			# @parameter stream [IO] The stream to read from.
+			# @raises [ProtocolError] If validation fails.
 			def read_payload(stream)
 				super
 				

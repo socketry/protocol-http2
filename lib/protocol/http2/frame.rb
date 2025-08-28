@@ -17,6 +17,9 @@ module Protocol
 		MINIMUM_ALLOWED_FRAME_SIZE = 0x4000
 		MAXIMUM_ALLOWED_FRAME_SIZE = 0xFFFFFF
 		
+		# Represents the base class for all HTTP/2 frames.
+		# This class provides common functionality for frame parsing, serialization,
+		# and manipulation according to RFC 7540.
 		class Frame
 			include Comparable
 			
@@ -43,14 +46,21 @@ module Protocol
 				@payload = payload
 			end
 			
+			# Check if the frame has a valid type identifier.
+			# @returns [Boolean] True if the frame type is valid.
 			def valid_type?
 				@type == self.class::TYPE
 			end
 			
+			# Compare frames based on their essential properties.
+			# @parameter other [Frame] The frame to compare with.
+			# @returns [Integer] -1, 0, or 1 for comparison result.
 			def <=> other
 				to_ary <=> other.to_ary
 			end
 			
+			# Convert frame to array representation for comparison.
+			# @returns [Array] Frame properties as an array.
 			def to_ary
 				[@length, @type, @flags, @stream_id, @payload]
 			end
@@ -73,10 +83,16 @@ module Protocol
 			attr_accessor :stream_id
 			attr_accessor :payload
 			
+			# Unpack the frame payload data.
+			# @returns [String] The frame payload.
 			def unpack
 				@payload
 			end
 			
+			# Pack payload data into the frame.
+			# @parameter payload [String] The payload data to pack.
+			# @parameter maximum_size [Integer | Nil] Optional maximum payload size.
+			# @raises [ProtocolError] If payload exceeds maximum size.
 			def pack(payload, maximum_size: nil)
 				@payload = payload
 				@length = payload.bytesize
@@ -86,14 +102,21 @@ module Protocol
 				end
 			end
 			
+			# Set specific flags on the frame.
+			# @parameter mask [Integer] The flag bits to set.
 			def set_flags(mask)
 				@flags |= mask
 			end
 			
+			# Clear specific flags on the frame.
+			# @parameter mask [Integer] The flag bits to clear.
 			def clear_flags(mask)
 				@flags &= ~mask
 			end
 			
+			# Check if specific flags are set on the frame.
+			# @parameter mask [Integer] The flag bits to check.
+			# @returns [Boolean] True if any of the flags are set.
 			def flag_set?(mask)
 				@flags & mask != 0
 			end
@@ -101,7 +124,7 @@ module Protocol
 			# Check if frame is a connection frame: SETTINGS, PING, GOAWAY, and any
 			# frame addressed to stream ID = 0.
 			#
-			# @return [Boolean]
+			# @return [Boolean] If this is a connection frame.
 			def connection?
 				@stream_id.zero?
 			end
@@ -145,6 +168,9 @@ module Protocol
 				return length, type, flags, stream_id
 			end
 			
+			# Read the frame header from a stream.
+			# @parameter stream [IO] The stream to read from.
+			# @raises [EOFError] If the header cannot be read completely.
 			def read_header(stream)
 				if buffer = stream.read(9) and buffer.bytesize == 9
 					@length, @type, @flags, @stream_id = Frame.parse_header(buffer)
@@ -154,6 +180,9 @@ module Protocol
 				end
 			end
 			
+			# Read the frame payload from a stream.
+			# @parameter stream [IO] The stream to read from.
+			# @raises [EOFError] If the payload cannot be read completely.
 			def read_payload(stream)
 				if payload = stream.read(@length) and payload.bytesize == @length
 					@payload = payload
@@ -162,6 +191,11 @@ module Protocol
 				end
 			end
 			
+			# Read the complete frame (header and payload) from a stream.
+			# @parameter stream [IO] The stream to read from.
+			# @parameter maximum_frame_size [Integer] The maximum allowed frame size.
+			# @raises [FrameSizeError] If the frame exceeds the maximum size.
+			# @returns [Frame] Self for method chaining.
 			def read(stream, maximum_frame_size = MAXIMUM_ALLOWED_FRAME_SIZE)
 				read_header(stream) unless @length
 				
@@ -172,14 +206,21 @@ module Protocol
 				read_payload(stream)
 			end
 			
+			# Write the frame header to a stream.
+			# @parameter stream [IO] The stream to write to.
 			def write_header(stream)
 				stream.write self.header
 			end
 			
+			# Write the frame payload to a stream.
+			# @parameter stream [IO] The stream to write to.
 			def write_payload(stream)
 				stream.write(@payload) if @payload
 			end
 			
+			# Write the complete frame (header and payload) to a stream.
+			# @parameter stream [IO] The stream to write to.
+			# @raises [ProtocolError] If frame validation fails.
 			def write(stream)
 				# Validate the payload size:
 				if @payload.nil?
@@ -196,10 +237,14 @@ module Protocol
 				self.write_payload(stream)
 			end
 			
+			# Apply the frame to a connection for processing.
+			# @parameter connection [Connection] The connection to apply the frame to.
 			def apply(connection)
 				connection.receive_frame(self)
 			end
 			
+			# Provide a readable representation of the frame for debugging.
+			# @returns [String] A formatted string representation of the frame.
 			def inspect
 				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} payload=#{self.unpack}>"
 			end

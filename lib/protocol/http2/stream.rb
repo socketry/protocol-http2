@@ -60,6 +60,10 @@ module Protocol
 		class Stream
 			include FlowControlled
 			
+			# Create a new stream and add it to the connection.
+			# @parameter connection [Connection] The connection this stream belongs to.
+			# @parameter id [Integer] The stream identifier.
+			# @returns [Stream] The newly created stream.
 			def self.create(connection, id)
 				stream = self.new(connection, id)
 				
@@ -68,6 +72,10 @@ module Protocol
 				return stream
 			end
 			
+			# Initialize a new stream.
+			# @parameter connection [Connection] The connection this stream belongs to.
+			# @parameter id [Integer] The stream identifier.
+			# @parameter state [Symbol] The initial stream state.
 			def initialize(connection, id, state = :idle)
 				@connection = connection
 				@id = id
@@ -95,18 +103,26 @@ module Protocol
 			# @attribute [Protocol::HTTP::Header::Priority | Nil] the priority of the stream.
 			attr_accessor :priority
 			
+			# Get the maximum frame size for this stream.
+			# @returns [Integer] The maximum frame size from connection settings.
 			def maximum_frame_size
 				@connection.available_frame_size
 			end
 			
+			# Write a frame to the connection for this stream.
+			# @parameter frame [Frame] The frame to write.
 			def write_frame(frame)
 				@connection.write_frame(frame)
 			end
 			
+			# Check if the stream is active (not idle or closed).
+			# @returns [Boolean] True if the stream is active.
 			def active?
 				@state != :closed && @state != :idle
 			end
 			
+			# Check if the stream is closed.
+			# @returns [Boolean] True if the stream is in closed state.
 			def closed?
 				@state == :closed
 			end
@@ -170,6 +186,8 @@ module Protocol
 				end
 			end
 			
+			# Consume from the remote window for both stream and connection.
+			# @parameter frame [Frame] The frame that consumes window space.
 			def consume_remote_window(frame)
 				super
 				
@@ -187,6 +205,9 @@ module Protocol
 				return frame
 			end
 			
+			# Send data over this stream.
+			# @parameter arguments [Array] Arguments passed to write_data.
+			# @parameter options [Hash] Options passed to write_data.
 			def send_data(*arguments, **options)
 				if @state == :open
 					frame = write_data(*arguments, **options)
@@ -205,6 +226,9 @@ module Protocol
 				end
 			end
 			
+			# Open the stream by transitioning from idle to open state.
+			# @returns [Stream] Returns self for chaining.
+			# @raises [ProtocolError] If the stream cannot be opened from current state.
 			def open!
 				if @state == :idle
 					@state = :open
@@ -234,6 +258,8 @@ module Protocol
 				return self
 			end
 			
+			# Send a RST_STREAM frame to reset this stream.
+			# @parameter error_code [Integer] The error code to send.
 			def send_reset_stream(error_code = 0)
 				if @state != :idle and @state != :closed
 					frame = ResetStreamFrame.new(@id)
@@ -247,6 +273,9 @@ module Protocol
 				end
 			end
 			
+			# Process headers frame and decode the header block.
+			# @parameter frame [HeadersFrame] The headers frame to process.
+			# @returns [Array] The decoded headers.
 			def process_headers(frame)
 				# Receiving request headers:
 				data = frame.unpack
@@ -258,6 +287,8 @@ module Protocol
 				# Console.warn(self) {"Received headers in state: #{@state}!"}
 			end
 			
+			# Receive and process a headers frame on this stream.
+			# @parameter frame [HeadersFrame] The headers frame to receive.
 			def receive_headers(frame)
 				if @state == :idle
 					if frame.end_stream?
@@ -295,6 +326,8 @@ module Protocol
 				frame.unpack
 			end
 			
+			# Ignore data frame when in an invalid state.
+			# @parameter frame [DataFrame] The data frame to ignore.
 			def ignore_data(frame)
 				# Console.warn(self) {"Received headers in state: #{@state}!"}
 			end
@@ -325,6 +358,10 @@ module Protocol
 				end
 			end
 			
+			# Receive and process a RST_STREAM frame on this stream.
+			# @parameter frame [ResetStreamFrame] The reset stream frame to receive.
+			# @returns [Integer] The error code from the reset frame.
+			# @raises [ProtocolError] If reset is received on an idle stream.
 			def receive_reset_stream(frame)
 				if @state == :idle
 					# If a RST_STREAM frame identifying an idle stream is received, the recipient MUST treat this as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
@@ -355,6 +392,9 @@ module Protocol
 				return frame
 			end
 			
+			# Transition stream to reserved local state.
+			# @returns [Stream] Returns self for chaining.
+			# @raises [ProtocolError] If the stream cannot be reserved from current state.
 			def reserved_local!
 				if @state == :idle
 					@state = :reserved_local
@@ -365,6 +405,9 @@ module Protocol
 				return self
 			end
 			
+			# Transition stream to reserved remote state.
+			# @returns [Stream] Returns self for chaining.
+			# @raises [ProtocolError] If the stream cannot be reserved from current state.
 			def reserved_remote!
 				if @state == :idle
 					@state = :reserved_remote
@@ -402,6 +445,8 @@ module Protocol
 				@connection.accept_push_promise_stream(stream_id)
 			end
 			
+			# Receive and process a PUSH_PROMISE frame on this stream.
+			# @parameter frame [PushPromiseFrame] The push promise frame to receive.
 			def receive_push_promise(frame)
 				promised_stream_id, data = frame.unpack
 				headers = @connection.decode_headers(data)
@@ -412,6 +457,8 @@ module Protocol
 				return stream, headers
 			end
 			
+			# Get a string representation of the stream.
+			# @returns [String] Human-readable stream information.
 			def inspect
 				"\#<#{self.class} id=#{@id} state=#{@state}>"
 			end

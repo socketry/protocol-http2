@@ -21,6 +21,8 @@ module Protocol
 			TYPE = 0x10
 			FORMAT = "N".freeze
 			
+			# Unpack the prioritized stream ID and priority field value.
+			# @returns [Array] An array containing the prioritized stream ID and priority field value.
 			def unpack
 				data = super
 				
@@ -29,10 +31,16 @@ module Protocol
 				return prioritized_stream_id, data.byteslice(4, data.bytesize - 4)
 			end
 			
+			# Pack the prioritized stream ID and priority field value into the frame.
+			# @parameter prioritized_stream_id [Integer] The stream ID to prioritize.
+			# @parameter data [String] The priority field value.
+			# @parameter options [Hash] Options for packing.
 			def pack(prioritized_stream_id, data, **options)
 				super([prioritized_stream_id].pack(FORMAT) + data, **options)
 			end
 			
+			# Apply this PRIORITY_UPDATE frame to a connection for processing.
+			# @parameter connection [Connection] The connection to apply the frame to.
 			def apply(connection)
 				connection.receive_priority_update(self)
 			end

@@ -27,6 +27,8 @@ module Protocol
 			TYPE = 0x5
 			FORMAT = "N".freeze
 			
+			# Unpack the promised stream ID and header block fragment.
+			# @returns [Array] An array containing the promised stream ID and header block data.
 			def unpack
 				data = super
 				
@@ -35,10 +37,17 @@ module Protocol
 				return stream_id, data.byteslice(4, data.bytesize - 4)
 			end
 			
+			# Pack the promised stream ID and header block data into the frame.
+			# @parameter stream_id [Integer] The promised stream ID.
+			# @parameter data [String] The header block data.
+			# @parameter arguments [Array] Additional arguments.
+			# @parameter options [Hash] Options for packing.
 			def pack(stream_id, data, *arguments, **options)
 				super([stream_id].pack(FORMAT) + data, *arguments, **options)
 			end
 			
+			# Apply this PUSH_PROMISE frame to a connection for processing.
+			# @parameter connection [Connection] The connection to apply the frame to.
 			def apply(connection)
 				connection.receive_push_promise(self)
 			end

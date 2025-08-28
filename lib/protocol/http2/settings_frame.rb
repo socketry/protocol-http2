@@ -7,6 +7,7 @@ require_relative "ping_frame"
 
 module Protocol
 	module HTTP2
+		# HTTP/2 connection settings container and management.
 		class Settings
 			HEADER_TABLE_SIZE = 0x1
 			ENABLE_PUSH = 0x2
@@ -30,6 +31,7 @@ module Protocol
 				:no_rfc7540_priorities=,
 			]
 			
+			# Initialize settings with default values from HTTP/2 specification.
 			def initialize
 				# These limits are taken from the RFC:
 				# https://tools.ietf.org/html/rfc7540#section-6.5.2
@@ -49,6 +51,9 @@ module Protocol
 			# This setting can be used to disable server push. An endpoint MUST NOT send a PUSH_PROMISE frame if it receives this parameter set to a value of 0.
 			attr :enable_push
 			
+			# Set the server push enable flag.
+			# @parameter value [Integer] Must be 0 (disabled) or 1 (enabled).
+			# @raises [ProtocolError] If the value is invalid.
 			def enable_push= value
 				if value == 0 or value == 1
 					@enable_push = value
@@ -57,6 +62,8 @@ module Protocol
 				end
 			end
 			
+			# Check if server push is enabled.
+			# @returns [Boolean] True if server push is enabled.
 			def enable_push?
 				@enable_push == 1
 			end
@@ -67,6 +74,9 @@ module Protocol
 			# Indicates the sender's initial window size (in octets) for stream-level flow control.
 			attr :initial_window_size
 			
+			# Set the initial window size for stream-level flow control.
+			# @parameter value [Integer] The window size in octets.
+			# @raises [ProtocolError] If the value exceeds the maximum allowed.
 			def initial_window_size= value
 				if value <= MAXIMUM_ALLOWED_WINDOW_SIZE
 					@initial_window_size = value
@@ -78,6 +88,9 @@ module Protocol
 			# Indicates the size of the largest frame payload that the sender is willing to receive, in octets.
 			attr :maximum_frame_size
 			
+			# Set the maximum frame size the sender is willing to receive.
+			# @parameter value [Integer] The maximum frame size in octets.
+			# @raises [ProtocolError] If the value is outside the allowed range.
 			def maximum_frame_size= value
 				if value > MAXIMUM_ALLOWED_FRAME_SIZE
 					raise ProtocolError, "Invalid value for maximum_frame_size: #{value} > #{MAXIMUM_ALLOWED_FRAME_SIZE}"
@@ -93,6 +106,9 @@ module Protocol
 			
 			attr :enable_connect_protocol
 			
+			# Set the CONNECT protocol enable flag.
+			# @parameter value [Integer] Must be 0 (disabled) or 1 (enabled).
+			# @raises [ProtocolError] If the value is invalid.
 			def enable_connect_protocol= value
 				if value == 0 or value == 1
 					@enable_connect_protocol = value
@@ -101,12 +117,17 @@ module Protocol
 				end
 			end
 			
+			# Check if CONNECT protocol is enabled.
+			# @returns [Boolean] True if CONNECT protocol is enabled.
 			def enable_connect_protocol?
 				@enable_connect_protocol == 1
 			end
 			
 			attr :no_rfc7540_priorities
 			
+			# Set the RFC 7540 priorities disable flag.
+			# @parameter value [Integer] Must be 0 (enabled) or 1 (disabled).
+			# @raises [ProtocolError] If the value is invalid.
 			def no_rfc7540_priorities= value
 				if value == 0 or value == 1
 					@no_rfc7540_priorities = value
@@ -115,10 +136,14 @@ module Protocol
 				end
 			end
 			
+			# Check if RFC 7540 priorities are disabled.
+			# @returns [Boolean] True if RFC 7540 priorities are disabled.
 			def no_rfc7540_priorities?
 				@no_rfc7540_priorities == 1
 			end
 			
+			# Update settings with a hash of changes.
+			# @parameter changes [Hash] Hash of setting keys and values to update.
 			def update(changes)
 				changes.each do |key, value|
 					if name = ASSIGN[key]
@@ -128,7 +153,10 @@ module Protocol
 			end
 		end
 		
+		# Manages pending settings changes that haven't been acknowledged yet.
 		class PendingSettings
+			# Initialize with current settings.
+			# @parameter current [Settings] The current settings object.
 			def initialize(current = Settings.new)
 				@current = current
 				@pending = current.dup
@@ -139,11 +167,14 @@ module Protocol
 			attr :current
 			attr :pending
 			
+			# Append changes to the pending queue.
+			# @parameter changes [Hash] Hash of setting changes to queue.
 			def append(changes)
 				@queue << changes
 				@pending.update(changes)
 			end
 			
+			# Acknowledge the next set of pending changes.
 			def acknowledge
 				if changes = @queue.shift
 					@current.update(changes)
@@ -154,30 +185,44 @@ module Protocol
 				end
 			end
 			
+			# Get the current header table size setting.
+			# @returns [Integer] The header table size in octets.
 			def header_table_size
 				@current.header_table_size
 			end
 			
+			# Get the current enable push setting.
+			# @returns [Integer] 1 if push is enabled, 0 if disabled.
 			def enable_push
 				@current.enable_push
 			end
 			
+			# Get the current maximum concurrent streams setting.
+			# @returns [Integer] The maximum number of concurrent streams.
 			def maximum_concurrent_streams
 				@current.maximum_concurrent_streams
 			end
 			
+			# Get the current initial window size setting.
+			# @returns [Integer] The initial window size in octets.
 			def initial_window_size
 				@current.initial_window_size
 			end
 			
+			# Get the current maximum frame size setting.
+			# @returns [Integer] The maximum frame size in octets.
 			def maximum_frame_size
 				@current.maximum_frame_size
 			end
 			
+			# Get the current maximum header list size setting.
+			# @returns [Integer] The maximum header list size in octets.
 			def maximum_header_list_size
 				@current.maximum_header_list_size
 			end
 			
+			# Get the current CONNECT protocol enable setting.
+			# @returns [Integer] 1 if CONNECT protocol is enabled, 0 if disabled.
 			def enable_connect_protocol
 				@current.enable_connect_protocol
 			end
@@ -197,10 +242,14 @@ module Protocol
 			
 			include Acknowledgement
 			
+			# Check if this frame applies to the connection level.
+			# @returns [Boolean] Always returns true for SETTINGS frames.
 			def connection?
 				true
 			end
 			
+			# Unpack settings parameters from the frame payload.
+			# @returns [Array] Array of [key, value] pairs representing settings.
 			def unpack
 				if buffer = super
 					# TODO String#each_slice, or #each_unpack would be nice.
@@ -210,14 +259,22 @@ module Protocol
 				end
 			end
 			
+			# Pack settings parameters into the frame payload.
+			# @parameter settings [Array] Array of [key, value] pairs to pack.
 			def pack(settings = [])
 				super(settings.map{|s| s.pack(FORMAT)}.join)
 			end
 			
+			# Apply this SETTINGS frame to a connection for processing.
+			# @parameter connection [Connection] The connection to apply the frame to.
 			def apply(connection)
 				connection.receive_settings(self)
 			end
 			
+			# Read and validate the SETTINGS frame payload.
+			# @parameter stream [IO] The stream to read from.
+			# @raises [ProtocolError] If the frame is invalid.
+			# @raises [FrameSizeError] If the frame length is invalid.
 			def read_payload(stream)
 				super
 				

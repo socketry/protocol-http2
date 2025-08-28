@@ -62,6 +62,9 @@ module Protocol
 		# which signals termination of the current connection. You *cannot*
 		# recover from this exception, or any exceptions subclassed from it.
 		class ProtocolError < Error
+			# Initialize a protocol error with message and error code.
+			# @parameter message [String] The error message.
+			# @parameter code [Integer] The HTTP/2 error code.
 			def initialize(message, code = PROTOCOL_ERROR)
 				super(message)
 				
@@ -71,26 +74,36 @@ module Protocol
 			attr :code
 		end
 		
+		# Represents an error specific to stream operations.
 		class StreamError < ProtocolError
 		end
 		
+		# Represents an error for operations on closed streams.
 		class StreamClosed < StreamError
+			# Initialize a stream closed error.
+			# @parameter message [String] The error message.
 			def initialize(message)
 				super message, STREAM_CLOSED
 			end
 		end
 		
+		# Represents a GOAWAY-related protocol error.
 		class GoawayError < ProtocolError
 		end
 		
 		# When the frame payload does not match expectations.
 		class FrameSizeError < ProtocolError
+			# Initialize a frame size error.
+			# @parameter message [String] The error message.
 			def initialize(message)
 				super message, FRAME_SIZE_ERROR
 			end
 		end
 		
+		# Represents a header processing error.
 		class HeaderError < StreamClosed
+			# Initialize a header error.
+			# @parameter message [String] The error message.
 			def initialize(message)
 				super(message)
 			end
@@ -98,6 +111,8 @@ module Protocol
 		
 		# Raised on invalid flow control frame or command.
 		class FlowControlError < ProtocolError
+			# Initialize a flow control error.
+			# @parameter message [String] The error message.
 			def initialize(message)
 				super message, FLOW_CONTROL_ERROR
 			end

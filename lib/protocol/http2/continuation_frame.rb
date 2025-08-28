@@ -7,21 +7,31 @@ require_relative "frame"
 
 module Protocol
 	module HTTP2
+		# Module for frames that can be continued with CONTINUATION frames.
 		module Continued
+			# Initialize a continuable frame.
+			# @parameter arguments [Array] Arguments passed to parent constructor.
 			def initialize(*)
 				super
 				
 				@continuation = nil
 			end
 			
+			# Check if this frame has continuation frames.
+			# @returns [Boolean] True if there are continuation frames.
 			def continued?
 				!!@continuation
 			end
 			
+			# Check if this is the last header block fragment.
+			# @returns [Boolean] True if the END_HEADERS flag is set.
 			def end_headers?
 				flag_set?(END_HEADERS)
 			end
 			
+			# Read the frame and any continuation frames from the stream.
+			# @parameter stream [IO] The stream to read from.
+			# @parameter maximum_frame_size [Integer] Maximum allowed frame size.
 			def read(stream, maximum_frame_size)
 				super
 				
@@ -44,6 +54,8 @@ module Protocol
 				end
 			end
 			
+			# Write the frame and any continuation frames to the stream.
+			# @parameter stream [IO] The stream to write to.
 			def write(stream)
 				super
 				
@@ -54,6 +66,9 @@ module Protocol
 			
 			attr_accessor :continuation
 			
+			# Pack data into this frame, creating continuation frames if needed.
+			# @parameter data [String] The data to pack.
+			# @parameter options [Hash] Options including maximum_size.
 			def pack(data, **options)
 				maximum_size = options[:maximum_size]
 				
@@ -75,6 +90,8 @@ module Protocol
 				end
 			end
 			
+			# Unpack data from this frame and any continuation frames.
+			# @returns [String] The complete unpacked data.
 			def unpack
 				if @continuation.nil?
 					super
@@ -100,6 +117,8 @@ module Protocol
 				connection.receive_continuation(self)
 			end
 			
+			# Get a string representation of the continuation frame.
+			# @returns [String] Human-readable frame information.
 			def inspect
 				"\#<#{self.class} stream_id=#{@stream_id} flags=#{@flags} length=#{@length || 0}b>"
 			end

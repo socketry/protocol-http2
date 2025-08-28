@@ -32,19 +32,28 @@ module Protocol
 			TYPE = 0x3
 			FORMAT = "N".freeze
 			
+			# Unpack the error code from the frame payload.
+			# @returns [Integer] The error code.
 			def unpack
 				@payload.unpack1(FORMAT)
 			end
 			
+			# Pack an error code into the frame payload.
+			# @parameter error_code [Integer] The error code to pack.
 			def pack(error_code = NO_ERROR)
 				@payload = [error_code].pack(FORMAT)
 				@length = @payload.bytesize
 			end
 			
+			# Apply this RST_STREAM frame to a connection for processing.
+			# @parameter connection [Connection] The connection to apply the frame to.
 			def apply(connection)
 				connection.receive_reset_stream(self)
 			end
 			
+			# Read and validate the RST_STREAM frame payload.
+			# @parameter stream [IO] The stream to read from.
+			# @raises [FrameSizeError] If the frame length is invalid.
 			def read_payload(stream)
 				super
 				

@@ -21,10 +21,14 @@ module Protocol
 			TYPE = 0x7
 			FORMAT = "NN"
 			
+			# Check if this frame applies to the connection level.
+			# @returns [Boolean] Always returns true for GOAWAY frames.
 			def connection?
 				true
 			end
 			
+			# Unpack the GOAWAY frame payload.
+			# @returns [Array] Last stream ID, error code, and debug data.
 			def unpack
 				data = super
 				
@@ -33,10 +37,16 @@ module Protocol
 				return last_stream_id, error_code, data.slice(8, data.bytesize-8)
 			end
 			
+			# Pack GOAWAY frame data into payload.
+			# @parameter last_stream_id [Integer] The last processed stream ID.
+			# @parameter error_code [Integer] The error code for connection termination.
+			# @parameter data [String] Additional debug data.
 			def pack(last_stream_id, error_code, data)
 				super [last_stream_id, error_code].pack(FORMAT) + data
 			end
 			
+			# Apply this GOAWAY frame to a connection for processing.
+			# @parameter connection [Connection] The connection to apply the frame to.
 			def apply(connection)
 				connection.receive_goaway(self)
 			end

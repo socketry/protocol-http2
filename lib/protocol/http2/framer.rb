@@ -42,28 +42,40 @@ module Protocol
 		# Default connection "fast-fail" preamble string as defined by the spec.
 		CONNECTION_PREFACE = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".freeze
 		
+		# Handles frame serialization and deserialization for HTTP/2 connections.
+		# This class manages the reading and writing of HTTP/2 frames to/from a stream.
 		class Framer
+			# Initialize a new framer with a stream and frame definitions.
+			# @parameter stream [IO] The underlying stream for frame I/O.
+			# @parameter frames [Array] Frame type definitions to use.
 			def initialize(stream, frames = FRAMES)
 				@stream = stream
 				@frames = frames
 			end
 			
+			# Flush the underlying stream.
 			def flush
 				@stream.flush
 			end
 			
+			# Close the underlying stream.
 			def close
 				@stream.close
 			end
 			
+			# Check if the underlying stream is closed.
+			# @returns [Boolean] True if the stream is closed.
 			def closed?
 				@stream.closed?
 			end
 			
+			# Write the HTTP/2 connection preface to the stream.
 			def write_connection_preface
 				@stream.write(CONNECTION_PREFACE)
 			end
 			
+			# Read and validate the HTTP/2 connection preface from the stream.
+			# @raises [HandshakeError] If the preface is invalid.
 			def read_connection_preface
 				string = @stream.read(CONNECTION_PREFACE.bytesize)
 				
@@ -105,6 +117,9 @@ module Protocol
 				return frame
 			end
 			
+			# Read a frame header from the stream.
+			# @returns [Array] Parsed frame header components: length, type, flags, stream_id.
+			# @raises [EOFError] If the header cannot be read completely.
 			def read_header
 				if buffer = @stream.read(9)
 					if buffer.bytesize == 9

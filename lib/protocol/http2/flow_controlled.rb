@@ -8,7 +8,11 @@ require_relative "window_update_frame"
 
 module Protocol
 	module HTTP2
+		# Provides flow control functionality for HTTP/2 connections and streams.
+		# This module implements window-based flow control as defined in RFC 7540.
 		module FlowControlled
+			# Get the available window size for sending data.
+			# @returns [Integer] The number of bytes that can be sent.
 			def available_size
 				@remote_window.available
 			end
@@ -40,17 +44,22 @@ module Protocol
 				end
 			end
 			
+			# Update the local window after receiving data.
+			# @parameter frame [Frame] The frame that was received.
 			def update_local_window(frame)
 				consume_local_window(frame)
 				request_window_update
 			end
 			
+			# Consume local window space for a received frame.
+			# @parameter frame [Frame] The frame that consumed window space.
 			def consume_local_window(frame)
 				# For flow-control calculations, the 9-octet frame header is not counted.
 				amount = frame.length
 				@local_window.consume(amount)
 			end
 			
+			# Request a window update if the local window is limited.
 			def request_window_update
 				if @local_window.limited?
 					self.send_window_update(@local_window.wanted)
@@ -67,6 +76,9 @@ module Protocol
 				@local_window.expand(window_increment)
 			end
 			
+			# Process a received WINDOW_UPDATE frame.
+			# @parameter frame [WindowUpdateFrame] The window update frame to process.
+			# @raises [ProtocolError] If the window increment is invalid.
 			def receive_window_update(frame)
 				amount = frame.unpack
 				

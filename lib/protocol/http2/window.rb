@@ -9,7 +9,7 @@ module Protocol
 		class Window
 			# When an HTTP/2 connection is first established, new streams are created with an initial flow-control window size of 65,535 octets. The connection flow-control window is also 65,535 octets.
 			DEFAULT_CAPACITY = 0xFFFF
-
+			
 			# Initialize a new flow control window.
 			# @parameter capacity [Integer] The initial window size, typically from the settings.
 			def initialize(capacity = DEFAULT_CAPACITY)

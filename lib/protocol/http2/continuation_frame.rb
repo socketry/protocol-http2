@@ -123,6 +123,10 @@ module Protocol
 			
 			TYPE = 0x9
 			
+			# Read the frame and any continuation frames from the stream.
+			# @parameter stream [IO] The stream to read from.
+			# @parameter maximum_frame_size [Integer] Maximum allowed frame size.
+			# @parameter limit [Integer] The maximum number of continuation frames to read.
 			def read(stream, maximum_frame_size, limit = 8)
 				super
 			end

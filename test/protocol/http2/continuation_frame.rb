@@ -62,4 +62,43 @@ describe Protocol::HTTP2::ContinuationFrame do
 			expect(frame.inspect).to be =~ /stream_id=0 flags=0 length=0/
 		end
 	end
+	
+	with "read(limit)" do
+		it "reads a single frame" do
+			frame.pack data
+			
+			buffer = StringIO.new
+			frame.write(buffer)
+			buffer.rewind
+			
+			new_frame = subject.new
+			new_frame.read(buffer, 128, 0)
+			expect(new_frame.unpack).to be == data
+		end
+		
+		it "raises if too many continuation frames" do
+			frame.pack data, maximum_size: 2
+			
+			buffer = StringIO.new
+			frame.write(buffer)
+			buffer.rewind
+			
+			expect do
+				new_frame = subject.new
+				new_frame.read(buffer, 128, 1)
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Too many continuation frames!/)
+		end
+		
+		it "reads multiple continuation frames" do
+			frame.pack data, maximum_size: 2
+			
+			buffer = StringIO.new
+			frame.write(buffer)
+			buffer.rewind
+			
+			new_frame = subject.new
+			new_frame.read(buffer, 128, 8)
+			expect(new_frame.unpack).to be == data
+		end
+	end
 end

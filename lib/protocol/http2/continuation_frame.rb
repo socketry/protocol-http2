@@ -9,6 +9,9 @@ module Protocol
 	module HTTP2
 		# Module for frames that can be continued with CONTINUATION frames.
 		module Continued
+			# @constant [Integer] The maximum number of continuation frames to read to prevent resource exhaustion.
+			LIMIT = 8
+			
 			# Initialize a continuable frame.
 			# @parameter arguments [Array] Arguments passed to parent constructor.
 			def initialize(*)
@@ -30,12 +33,20 @@ module Protocol
 			end
 			
 			# Read the frame and any continuation frames from the stream.
+			#
+			# There is an upper limit to the number of continuation frames that can be read to prevent resource exhaustion. If the limit is 0, only one frame will be read (the initial frame). Otherwise, the limit decrements with each continuation frame read.
+			#
 			# @parameter stream [IO] The stream to read from.
 			# @parameter maximum_frame_size [Integer] Maximum allowed frame size.
-			def read(stream, maximum_frame_size)
-				super
+			# @parameter limit [Integer] The maximum number of continuation frames to read.
+			def read(stream, maximum_frame_size, limit = LIMIT)
+				super(stream, maximum_frame_size)
 				
 				unless end_headers?
+					if limit.zero?
+						raise ProtocolError, "Too many continuation frames!"
+					end
+					
 					continuation = ContinuationFrame.new
 					continuation.read_header(stream)
 					
@@ -48,7 +59,7 @@ module Protocol
 						raise ProtocolError, "Invalid stream id: #{continuation.stream_id} for continuation of stream id: #{@stream_id}!"
 					end
 					
-					continuation.read(stream, maximum_frame_size)
+					continuation.read(stream, maximum_frame_size, limit - 1)
 					
 					@continuation = continuation
 				end
@@ -111,6 +122,10 @@ module Protocol
 			include Continued
 			
 			TYPE = 0x9
+			
+			def read(stream, maximum_frame_size, limit = 8)
+				super
+			end
 			
 			# This is only invoked if the continuation is received out of the normal flow.
 			def apply(connection)

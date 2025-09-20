@@ -10,6 +10,10 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
   - [Getting Started](https://socketry.github.io/protocol-http2/guides/getting-started/index) - This guide explains how to use the `protocol-http2` gem to implement a basic HTTP/2 client.
 
+## Releases
+
+There are no documented releases.
+
 ## See Also
 
   - [Async::HTTP](https://github.com/socketry/async-http) - A high-level HTTP client and server implementation.

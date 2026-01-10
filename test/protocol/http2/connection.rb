@@ -97,6 +97,68 @@ describe Protocol::HTTP2::Connection do
 			end
 		end.to raise_exception(EOFError, message: be =~ /Connection closed/)
 	end
+	
+	with "#close" do
+		it "closes the connection without active streams" do
+			# No active streams
+			expect(connection.streams).to be(:empty?)
+			
+			# Close the connection - should not raise:
+			connection.close(nil)
+			
+			expect(connection).to be(:closed?)
+		end
+		
+		it "generates an error when closing with active streams" do
+			# Create an active stream:
+			stream = Protocol::HTTP2::Stream.new(connection, 1)
+			connection.streams[1] = stream
+			
+			expect(stream).to receive(:close) do |error|
+				expect(error).to be_a(EOFError)
+				expect(error.message).to be =~ /Connection closed with 1 active stream/
+			end
+			
+			# Close the connection without an error:
+			connection.close(nil)
+		end
+		
+		it "passes through the error when closing with active streams and an explicit error" do
+			# Create an active stream:
+			stream = Protocol::HTTP2::Stream.new(connection, 1)
+			connection.streams[1] = stream
+			
+			custom_error = RuntimeError.new("Connection failed!")
+			
+			expect(stream).to receive(:close) do |error|
+				expect(error).to be === custom_error
+			end
+			
+			# Close the connection with an explicit error:
+			connection.close(custom_error)
+		end
+		
+		it "generates an error for multiple active streams" do
+			# Create multiple active streams:
+			stream1 = Protocol::HTTP2::Stream.new(connection, 1)
+			stream2 = Protocol::HTTP2::Stream.new(connection, 3)
+			connection.streams[1] = stream1
+			connection.streams[3] = stream2
+			
+			expect(stream1).to receive(:close) do |error|
+				expect(error).to be_a(EOFError)
+				expect(error.message).to be =~ /Connection closed with 2 active stream/
+			end
+			
+			expect(stream2).to receive(:close) do |error|
+				expect(error).to be_a(EOFError)
+				expect(error.message).to be =~ /Connection closed with 2 active stream/
+			end
+			
+			# Close the connection without an error:
+			connection.close(nil)
+		end
+	end
 end
 
 with "client and server" do

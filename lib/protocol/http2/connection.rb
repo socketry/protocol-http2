@@ -109,6 +109,12 @@ module Protocol
 			# Close the underlying framer and all streams.
 			def close(error = nil)
 				# The underlying socket may already be closed by this point.
+				
+				# If there are active streams when the connection closes, it's an error for those streams, even if the connection itself closed cleanly:
+				if @streams.any? and error.nil?
+					error = EOFError.new("Connection closed with #{@streams.size} active stream(s)!")
+				end
+				
 				@streams.each_value{|stream| stream.close(error)}
 				@streams.clear
 				

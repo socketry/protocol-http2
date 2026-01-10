@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2025, by Samuel Williams.
+# Copyright, 2019-2026, by Samuel Williams.
 # Copyright, 2023, by Marco Concetto Rudilosso.
 
 require "protocol/http2/connection_context"
@@ -464,7 +464,7 @@ with "client and server" do
 		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
 		client_stream.send_headers(request_headers)
 		
-		expect {server.read_frame}.to raise_exception(Protocol::HTTP2::ProtocolError)
+		expect{server.read_frame}.to raise_exception(Protocol::HTTP2::ProtocolError)
 	end
 	
 	it "allows server to create new stream and send headers when server maximum concurrent streams is 0" do
@@ -488,7 +488,7 @@ with "client and server" do
 		request_headers = [[":method", "GET"], [":path", "/"], [":authority", "localhost"]]
 		server_stream.send_headers(request_headers)
 		
-		expect {client.read_frame}.to raise_exception(Protocol::HTTP2::ProtocolError)
+		expect{client.read_frame}.to raise_exception(Protocol::HTTP2::ProtocolError)
 	end
 	
 	with "closed client" do

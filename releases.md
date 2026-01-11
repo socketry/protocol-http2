@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - When closing a connection with active streams, if an error is not provided, it will default to `EOFError` so that streams propagate the closure correctly.
+
 ## v0.23.0
 
   - Introduce a limit to the number of CONTINUATION frames that can be read to prevent resource exhaustion. The default limit is 8 continuation frames, which means a total of 9 frames (1 initial + 8 continuation). This limit can be adjusted by passing a different value to the `limit` parameter in the `Continued.read` method. Setting the limit to 0 will only read the initial frame without any continuation frames. In order to change the default, you can redefine the `LIMIT` constant in the `Protocol::HTTP2::Continued` module, OR you can pass a different frame class to the framer.

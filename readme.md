@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.24.0
+
+  - When closing a connection with active streams, if an error is not provided, it will default to `EOFError` so that streams propagate the closure correctly.
+
 ### v0.23.0
 
   - Introduce a limit to the number of CONTINUATION frames that can be read to prevent resource exhaustion. The default limit is 8 continuation frames, which means a total of 9 frames (1 initial + 8 continuation). This limit can be adjusted by passing a different value to the `limit` parameter in the `Continued.read` method. Setting the limit to 0 will only read the initial frame without any continuation frames. In order to change the default, you can redefine the `LIMIT` constant in the `Protocol::HTTP2::Continued` module, OR you can pass a different frame class to the framer.
@@ -57,13 +61,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
 
   - Performance improvements for synchronized output handling.
   - Extracted `window.rb` into separate module for better organization.
-
-### v0.19.0
-
-  - Removed unused `opened` hook that was never utilized.
-  - Improved ASCII art diagram in documentation.
-  - Modernized gem structure and dependencies.
-  - Moved test fixtures into proper namespace organization.
 
 ## See Also
 

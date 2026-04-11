@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - On GOAWAY, proactively close unprocessed streams (ID above `last_stream_id`) with `Protocol::HTTP::RequestRefusedError`, enabling safe retry of non-idempotent requests.
+
 ## v0.24.0
 
   - When closing a connection with active streams, if an error is not provided, it will default to `EOFError` so that streams propagate the closure correctly.

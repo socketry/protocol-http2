@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.25.0
+
+  - On GOAWAY, proactively close unprocessed streams (ID above `last_stream_id`) with `Protocol::HTTP::RequestRefusedError`, enabling safe retry of non-idempotent requests.
+
 ### v0.24.0
 
   - When closing a connection with active streams, if an error is not provided, it will default to `EOFError` so that streams propagate the closure correctly.
@@ -56,11 +60,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
 
   - Added traces to framer for better debugging and monitoring capabilities.
   - Minor fixes to logging output.
-
-### v0.19.1
-
-  - Performance improvements for synchronized output handling.
-  - Extracted `window.rb` into separate module for better organization.
 
 ## See Also
 

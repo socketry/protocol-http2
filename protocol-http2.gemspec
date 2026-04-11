@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
 	
 	spec.files = Dir.glob(["{context,lib}/**/*", "*.md"], File::FNM_DOTMATCH, base: __dir__)
 	
-	spec.required_ruby_version = ">= 3.2"
+	spec.required_ruby_version = ">= 3.3"
 	
 	spec.add_dependency "protocol-hpack", "~> 1.4"
 	spec.add_dependency "protocol-http", "~> 0.47"

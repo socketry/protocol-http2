@@ -1,8 +1,8 @@
 # Releases
 
-## Unreleased
+## v0.26.0
 
-  - On RST_STREAM with REFUSED_STREAM, close the stream with `Protocol::HTTP::RefusedError` instead of `StreamError`.
+  - On RST\_STREAM with REFUSED\_STREAM, close the stream with `Protocol::HTTP::RefusedError` instead of `StreamError`.
 
 ## v0.25.0
 

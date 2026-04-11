@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.26.0
+
+  - On RST\_STREAM with REFUSED\_STREAM, close the stream with `Protocol::HTTP::RefusedError` instead of `StreamError`.
+
 ### v0.25.0
 
   - On GOAWAY, proactively close unprocessed streams (ID above `last_stream_id`) with `Protocol::HTTP::RequestRefusedError`, enabling safe retry of non-idempotent requests.
@@ -55,11 +59,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
 
   - Improved window update frame handling and performance optimizations.
   - Better implementation of `Window#inspect` for debugging.
-
-### v0.19.2
-
-  - Added traces to framer for better debugging and monitoring capabilities.
-  - Minor fixes to logging output.
 
 ## See Also
 

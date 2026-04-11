@@ -237,6 +237,15 @@ module Protocol
 				
 				self.close!
 				
+				# Streams above the last stream ID were not processed by the remote peer and are safe to retry (RFC 9113 §6.8).
+				error = ::Protocol::HTTP::RequestRefusedError.new("GOAWAY: request not processed.")
+				
+				@streams.each_value do |stream|
+					if stream.id > @remote_stream_id
+						stream.close(error)
+					end
+				end
+				
 				if error_code != 0
 					# Shut down immediately.
 					raise GoawayError.new(message, error_code)

@@ -402,7 +402,25 @@ with "client and server" do
 			end
 		end
 		
-		it "closes unprocessed streams with RequestRefusedError on graceful GOAWAY" do
+		it "closes stream with RefusedError on REFUSED_STREAM" do
+			stream = client.create_stream do |connection, id|
+				stream_class.create(connection, id)
+			end
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			
+			# Establish request stream on server:
+			server.read_frame
+			
+			# Server refuses the stream:
+			server.streams[stream.id].send_reset_stream(Protocol::HTTP2::REFUSED_STREAM)
+			
+			client.read_frame
+			
+			expect(stream.state).to be == :closed
+			expect(stream.error).to be_a(Protocol::HTTP::RefusedError)
+		end
+		
+		it "closes unprocessed streams with RefusedError on graceful GOAWAY" do
 			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			
 			# Establish request stream on server:
@@ -418,15 +436,15 @@ with "client and server" do
 			
 			client.read_frame
 			
-			# The unprocessed stream (id=3) should be closed with RequestRefusedError:
+			# The unprocessed stream (id=3) should be closed with RefusedError:
 			expect(another_stream.state).to be == :closed
-			expect(another_stream.error).to be_a(Protocol::HTTP::RequestRefusedError)
+			expect(another_stream.error).to be_a(Protocol::HTTP::RefusedError)
 			
 			# The processed stream (id=1) should still be open:
 			expect(stream.state).not.to be == :closed
 		end
 		
-		it "closes all streams with RequestRefusedError on GOAWAY with last_stream_id=0" do
+		it "closes all streams with RefusedError on GOAWAY with last_stream_id=0" do
 			another_stream = client.create_stream do |connection, id|
 				stream_class.create(connection, id)
 			end
@@ -438,10 +456,10 @@ with "client and server" do
 			client.read_frame
 			
 			expect(another_stream.state).to be == :closed
-			expect(another_stream.error).to be_a(Protocol::HTTP::RequestRefusedError)
+			expect(another_stream.error).to be_a(Protocol::HTTP::RefusedError)
 		end
 		
-		it "closes unprocessed streams with RequestRefusedError on non-graceful GOAWAY" do
+		it "closes unprocessed streams with RefusedError on non-graceful GOAWAY" do
 			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			
 			# Establish request stream on server:
@@ -459,9 +477,9 @@ with "client and server" do
 				client.read_frame
 			end.to raise_exception(Protocol::HTTP2::GoawayError)
 			
-			# The unprocessed stream should still have been closed with RequestRefusedError:
+			# The unprocessed stream should still have been closed with RefusedError:
 			expect(another_stream.state).to be == :closed
-			expect(another_stream.error).to be_a(Protocol::HTTP::RequestRefusedError)
+			expect(another_stream.error).to be_a(Protocol::HTTP::RefusedError)
 		end
 		
 		it "client can handle non-graceful shutdown" do

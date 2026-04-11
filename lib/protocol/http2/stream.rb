@@ -250,7 +250,11 @@ module Protocol
 				@connection.delete(@id)
 				
 				if error_code
-					error = StreamError.new("Stream closed!", error_code)
+					if error_code == REFUSED_STREAM
+						error = ::Protocol::HTTP::RefusedError.new("Stream refused.")
+					else
+						error = StreamError.new("Stream closed!", error_code)
+					end
 				end
 				
 				self.closed(error)

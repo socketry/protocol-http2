@@ -253,7 +253,7 @@ module Protocol
 					if error_code == REFUSED_STREAM
 						error = ::Protocol::HTTP::RefusedError.new("Stream refused.")
 					else
-						error = StreamError.new("Stream closed!", error_code)
+						error = StreamError.for(error_code)
 					end
 				end
 				

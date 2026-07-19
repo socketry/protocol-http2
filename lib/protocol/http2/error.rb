@@ -50,6 +50,33 @@ module Protocol
 			
 			# The endpoint requires that HTTP/1.1 be used instead of HTTP/2.
 			HTTP_1_1_REQUIRED = 0xD
+			
+			MESSAGES = {
+				NO_ERROR => "No error.",
+				PROTOCOL_ERROR => "Protocol error!",
+				INTERNAL_ERROR => "Internal error!",
+				FLOW_CONTROL_ERROR => "Flow control error!",
+				SETTINGS_TIMEOUT => "Settings timeout!",
+				STREAM_CLOSED => "Stream closed!",
+				FRAME_SIZE_ERROR => "Frame size error!",
+				REFUSED_STREAM => "Stream refused.",
+				CANCEL => "Stream cancelled.",
+				COMPRESSION_ERROR => "Compression error!",
+				CONNECT_ERROR => "Connect error!",
+				ENHANCE_YOUR_CALM => "Enhance your calm!",
+				INADEQUATE_SECURITY => "Inadequate security!",
+				HTTP_1_1_REQUIRED => "HTTP/1.1 required.",
+			}
+			
+			# Get the message for a given HTTP/2 error code.
+			# @parameter code [Integer] The HTTP/2 error code.
+			# @returns [String] The error message.
+			def self.message_for(code)
+				return MESSAGES.fetch(code) do
+					# Unknown error codes are allowed by the protocol, but don't have a static message.
+					"Unknown code: #{code}!"
+				end
+			end
 		end
 		
 		# Raised if connection header is missing or invalid indicating that
@@ -62,6 +89,13 @@ module Protocol
 		# which signals termination of the current connection. You *cannot*
 		# recover from this exception, or any exceptions subclassed from it.
 		class ProtocolError < Error
+			# Build a protocol error for a given HTTP/2 error code.
+			# @parameter code [Integer] The HTTP/2 error code.
+			# @returns [ProtocolError] The protocol error.
+			def self.for(code)
+				return self.new(Error.message_for(code), code)
+			end
+			
 			# Initialize a protocol error with message and error code.
 			# @parameter message [String] The error message.
 			# @parameter code [Integer] The HTTP/2 error code.

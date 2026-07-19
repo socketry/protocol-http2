@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.26.1
 
   - Improve `StreamError` messages for HTTP/2 stream reset error codes.
 

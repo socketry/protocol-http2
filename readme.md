@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.26.1
+
+  - Improve `StreamError` messages for HTTP/2 stream reset error codes.
+
 ### v0.26.0
 
   - On RST\_STREAM with REFUSED\_STREAM, close the stream with `Protocol::HTTP::RefusedError` instead of `StreamError`.
@@ -54,11 +58,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
 ### v0.19.4
 
   - Reduced the number of window update frames sent to improve network efficiency.
-
-### v0.19.3
-
-  - Improved window update frame handling and performance optimizations.
-  - Better implementation of `Window#inspect` for debugging.
 
 ## See Also
 

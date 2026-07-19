@@ -68,6 +68,9 @@ module Protocol
 				HTTP_1_1_REQUIRED => "HTTP/1.1 required.",
 			}
 			
+			# Get the message for a given HTTP/2 error code.
+			# @parameter code [Integer] The HTTP/2 error code.
+			# @returns [String] The error message.
 			def self.message_for(code)
 				return MESSAGES.fetch(code) do
 					# Unknown error codes are allowed by the protocol, but don't have a static message.
@@ -86,6 +89,9 @@ module Protocol
 		# which signals termination of the current connection. You *cannot*
 		# recover from this exception, or any exceptions subclassed from it.
 		class ProtocolError < Error
+			# Build a protocol error for a given HTTP/2 error code.
+			# @parameter code [Integer] The HTTP/2 error code.
+			# @returns [ProtocolError] The protocol error.
 			def self.for(code)
 				return self.new(Error.message_for(code), code)
 			end

@@ -17,6 +17,18 @@ describe Protocol::HTTP2::Error do
 	end
 end
 
+describe Protocol::HTTP2::ProtocolError do
+	with ".for" do
+		it "builds a protocol error for a known error code" do
+			error = subject.for(subject::PROTOCOL_ERROR)
+			
+			expect(error).to be_a(subject)
+			expect(error.message).to be == "Protocol error!"
+			expect(error.code).to be == subject::PROTOCOL_ERROR
+		end
+	end
+end
+
 describe Protocol::HTTP2::StreamError do
 	with ".for" do
 		it "builds a stream error for a known error code" do

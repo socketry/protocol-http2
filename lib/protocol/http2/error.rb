@@ -86,6 +86,10 @@ module Protocol
 		# which signals termination of the current connection. You *cannot*
 		# recover from this exception, or any exceptions subclassed from it.
 		class ProtocolError < Error
+			def self.for(code)
+				return self.new(Error.message_for(code), code)
+			end
+			
 			# Initialize a protocol error with message and error code.
 			# @parameter message [String] The error message.
 			# @parameter code [Integer] The HTTP/2 error code.
@@ -100,9 +104,6 @@ module Protocol
 		
 		# Represents an error specific to stream operations.
 		class StreamError < ProtocolError
-			def self.for(code)
-				return self.new(Error.message_for(code), code)
-			end
 		end
 		
 		# Represents an error for operations on closed streams.

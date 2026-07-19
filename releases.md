@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - Improve `StreamError` messages for HTTP/2 stream reset error codes.
+
 ## v0.26.0
 
   - On RST\_STREAM with REFUSED\_STREAM, close the stream with `Protocol::HTTP::RefusedError` instead of `StreamError`.

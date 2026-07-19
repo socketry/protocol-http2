@@ -76,6 +76,31 @@ module Protocol
 		
 		# Represents an error specific to stream operations.
 		class StreamError < ProtocolError
+			MESSAGES = {
+				Error::NO_ERROR => "No error.",
+				Error::PROTOCOL_ERROR => "Protocol error!",
+				Error::INTERNAL_ERROR => "Internal error!",
+				Error::FLOW_CONTROL_ERROR => "Flow control error!",
+				Error::SETTINGS_TIMEOUT => "Settings timeout!",
+				Error::STREAM_CLOSED => "Stream closed!",
+				Error::FRAME_SIZE_ERROR => "Frame size error!",
+				Error::REFUSED_STREAM => "Stream refused.",
+				Error::CANCEL => "Stream cancelled.",
+				Error::COMPRESSION_ERROR => "Compression error!",
+				Error::CONNECT_ERROR => "Connect error!",
+				Error::ENHANCE_YOUR_CALM => "Enhance your calm!",
+				Error::INADEQUATE_SECURITY => "Inadequate security!",
+				Error::HTTP_1_1_REQUIRED => "HTTP/1.1 required.",
+			}
+			
+			def self.for(code)
+				message = MESSAGES.fetch(code) do
+					# Unknown error codes are allowed by the protocol, but don't have a static message.
+					"Unknown code: #{code}!"
+				end
+				
+				return self.new(message, code)
+			end
 		end
 		
 		# Represents an error for operations on closed streams.

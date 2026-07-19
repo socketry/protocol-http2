@@ -5,6 +5,18 @@
 
 require "protocol/http2/error"
 
+describe Protocol::HTTP2::Error do
+	with ".message_for" do
+		it "returns a static message for a known error code" do
+			expect(subject.message_for(subject::CANCEL)).to be == "Stream cancelled."
+		end
+		
+		it "returns a fallback message for an unknown error code" do
+			expect(subject.message_for(99)).to be == "Unknown code: 99!"
+		end
+	end
+end
+
 describe Protocol::HTTP2::StreamError do
 	with ".for" do
 		it "builds a stream error for a known error code" do

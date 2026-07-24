@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.26.2
 
   - Ignore the reserved high bit when decoding GOAWAY last stream IDs.
 

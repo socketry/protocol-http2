@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.26.2
+
+  - Ignore the reserved high bit when decoding GOAWAY last stream IDs.
+
 ### v0.26.1
 
   - Improve `StreamError` messages for HTTP/2 stream reset error codes.
@@ -54,10 +58,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
   - Removed `traces` as a required dependency - it's now optional and only used when explicitly needed.
   - Added better documentation for `maximum_concurrent_streams` setting.
   - Restored 100% test coverage and exposed trace provider for optional tracing support.
-
-### v0.19.4
-
-  - Reduced the number of window update frames sent to improve network efficiency.
 
 ## See Also
 

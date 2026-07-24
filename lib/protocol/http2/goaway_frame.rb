@@ -33,6 +33,7 @@ module Protocol
 				data = super
 				
 				last_stream_id, error_code = data.unpack(FORMAT)
+				last_stream_id &= 0x7fffffff
 				
 				return last_stream_id, error_code, data.slice(8, data.bytesize-8)
 			end

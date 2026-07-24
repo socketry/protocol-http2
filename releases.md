@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - Ignore the reserved high bit when decoding GOAWAY last stream IDs.
+
 ## v0.26.1
 
   - Improve `StreamError` messages for HTTP/2 stream reset error codes.

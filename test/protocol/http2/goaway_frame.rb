@@ -38,5 +38,11 @@ describe Protocol::HTTP2::GoawayFrame do
 			
 			expect(frame.unpack).to be == [3, 2, data]
 		end
+		
+		it "ignores the reserved high bit of the last stream id" do
+			frame.pack 0x80000003, 2, data
+			
+			expect(frame.unpack).to be == [3, 2, data]
+		end
 	end
 end

@@ -149,10 +149,8 @@ module Protocol
 					error = EOFError.new("Connection closed with #{@streams.size} active stream(s)!")
 				end
 				
-				# The streams are detached before any of them is closed, so that a re-entrant `close` - a stream's `closed` hook can reach one, e.g. by releasing the connection back to a pool - neither sees them as active nor closes them a second time with a different error:
-				streams, @streams = @streams, {}
-				
-				streams.each_value{|stream| stream.close(error)}
+				@streams.each_value{|stream| stream.close(error)}
+				@streams.clear
 				
 			ensure
 				if @framer

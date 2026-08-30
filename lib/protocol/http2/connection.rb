@@ -275,7 +275,9 @@ module Protocol
 				goaway_stream_id, error_code, message = frame.unpack
 				
 				# A peer can send an initial GOAWAY with a high stream ID, followed by another GOAWAY with a lower stream ID. The effective cutoff can only decrease (RFC 9113 §6.8).
-				@goaway_stream_id = [@goaway_stream_id || goaway_stream_id, goaway_stream_id].min
+				if @goaway_stream_id.nil? || goaway_stream_id < @goaway_stream_id
+					@goaway_stream_id = goaway_stream_id
+				end
 				
 				# Locally-initiated streams above the last stream ID were not processed by the remote peer and are safe to retry (RFC 9113 §6.8). They are removed from the connection before being closed, both so that what remains is exactly the set of streams we are waiting on, and so that closing them cannot mutate the collection while we are traversing it.
 				refused_streams = @streams.select{|id, stream| local_stream_id?(id) && id > @goaway_stream_id}

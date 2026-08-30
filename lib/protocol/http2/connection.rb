@@ -45,8 +45,8 @@ module Protocol
 				@local_window = LocalWindow.new
 				@remote_window = Window.new
 				
-				# Whether the remote peer has sent us a GOAWAY frame:
-				@goaway_received = false
+				# The lowest Last-Stream-ID received in a GOAWAY frame, or nil if no GOAWAY frame has been received:
+				@goaway_stream_id = nil
 			end
 			
 			# The connection stream ID (always 0 for connection-level operations).
@@ -97,28 +97,31 @@ module Protocol
 			# The highest stream_id that has been successfully accepted by this connection.
 			attr :remote_stream_id
 			
+			# The lowest Last-Stream-ID received in a GOAWAY frame.
+			attr :goaway_stream_id
+			
 			# Whether the connection is effectively or actually closed.
 			def closed?
 				@state == :closed || @framer.nil?
 			end
 			
-			# Whether the remote peer has sent us a GOAWAY frame. We must not initiate any new streams on this connection, but the streams at or below `remote_stream_id` may still be in progress.
+			# Whether the remote peer has sent us a GOAWAY frame. We must not initiate any new streams on this connection, but existing streams may still be in progress.
 			# @returns [Boolean] True if a GOAWAY frame has been received.
 			def goaway_received?
-				@goaway_received
+				!@goaway_stream_id.nil?
 			end
 			
-			# Whether the connection is draining the streams which were accepted by the remote peer before it sent a graceful GOAWAY frame. Such a connection is still readable and those streams will still receive their responses, but it must not be used for new requests.
+			# Whether the connection is draining active streams after the remote peer sent a graceful GOAWAY frame. Such a connection is still readable and those streams may still exchange frames, but it must not be used to initiate new streams.
 			# @returns [Boolean] True if a graceful shutdown is in progress and streams are still active.
 			def draining?
-				@goaway_received && !self.closed? && @streams.any?
+				self.goaway_received? && !self.closed? && @streams.any?
 			end
 			
 			# Transition the connection into the closed state if a graceful GOAWAY was received and there is nothing left to drain.
 			#
 			# As with {close!}, this is a state transition only: the owner of the connection is responsible for closing the underlying framer.
 			def close_if_drained!
-				if @goaway_received && @streams.empty?
+				if self.goaway_received? && @streams.empty?
 					self.close!
 				end
 			end
@@ -270,13 +273,14 @@ module Protocol
 			# @parameter frame [GoawayFrame] The GOAWAY frame to process.
 			# @raises [GoawayError] If the frame indicates a connection error.
 			def receive_goaway(frame)
-				# We capture the last stream that was processed.
-				@remote_stream_id, error_code, message = frame.unpack
+				# We capture the last locally-initiated stream that may have been processed by the peer.
+				goaway_stream_id, error_code, message = frame.unpack
 				
-				@goaway_received = true
+				# A peer can send an initial GOAWAY with a high stream ID, followed by another GOAWAY with a lower stream ID. The effective cutoff can only decrease (RFC 9113 §6.8).
+				@goaway_stream_id = [@goaway_stream_id || goaway_stream_id, goaway_stream_id].min
 				
-				# Streams above the last stream ID were not processed by the remote peer and are safe to retry (RFC 9113 §6.8). They are removed from the connection before being closed, both so that what remains is exactly the set of streams we are waiting on, and so that closing them cannot mutate the collection while we are traversing it.
-				refused_streams = @streams.select{|id, stream| id > @remote_stream_id}
+				# Locally-initiated streams above the last stream ID were not processed by the remote peer and are safe to retry (RFC 9113 §6.8). They are removed from the connection before being closed, both so that what remains is exactly the set of streams we are waiting on, and so that closing them cannot mutate the collection while we are traversing it.
+				refused_streams = @streams.select{|id, stream| local_stream_id?(id) && id > @goaway_stream_id}
 				refused_streams.each_key{|id| @streams.delete(id)}
 				
 				# The state of the connection is decided before any stream is closed, so that it cannot be left undecided by a `closed` hook which raises, and cannot be influenced by one which creates a stream.
@@ -477,7 +481,7 @@ module Protocol
 			# On the client side, we create requests.
 			# @return [Stream] the created stream.
 			def create_stream(id = next_stream_id, &block)
-				if @goaway_received and local_stream_id?(id)
+				if self.goaway_received? and local_stream_id?(id)
 					# Receivers of a GOAWAY frame MUST NOT open additional streams on the connection (RFC 9113 §6.8). A new connection has to be established for new streams.
 					raise ProtocolError, "Cannot create stream #{id} after GOAWAY!"
 				end

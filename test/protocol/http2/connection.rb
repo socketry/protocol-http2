@@ -42,6 +42,10 @@ describe Protocol::HTTP2::Connection do
 		expect(connection).not.to be(:valid_remote_stream_id?, 1)
 	end
 	
+	it "does not report any stream_id as being local" do
+		expect(connection).not.to be(:local_stream_id?, 1)
+	end
+	
 	it "rejects a push promise" do
 		frame = Protocol::HTTP2::PushPromiseFrame.new
 		
@@ -374,7 +378,8 @@ with "client and server" do
 			another_stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			
 			expect(client.read_frame).to be_a Protocol::HTTP2::GoawayFrame
-			expect(client.remote_stream_id).to be == 1
+			expect(client.goaway_stream_id).to be == 1
+			expect(client.remote_stream_id).to be == 0
 			
 			# The server accepted stream 1 and is still processing it, so the connection is not closed yet:
 			expect(client).to be(:goaway_received?)
@@ -397,6 +402,21 @@ with "client and server" do
 			# There is nothing left to drain, so the connection is closed:
 			expect(client).not.to be(:draining?)
 			expect(client).to be(:closed?)
+		end
+		
+		it "keeps peer-initiated streams open when receiving GOAWAY" do
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			server.read_frame
+			
+			# The client's GOAWAY stream ID applies to streams initiated by the server, not the client's request stream:
+			client.send_goaway(0)
+			server.read_frame
+			
+			expect(server.goaway_stream_id).to be == 0
+			expect(server.remote_stream_id).to be == 1
+			expect(server.streams.keys).to be == [1]
+			expect(server.streams[1].state).to be == :half_closed_remote
+			expect(server).to be(:draining?)
 		end
 		
 		let(:stream_class) do
@@ -453,6 +473,41 @@ with "client and server" do
 			
 			# Unprocessed streams are removed from the connection, so what remains is exactly what we are waiting for:
 			expect(client.streams.keys).to be == [1]
+		end
+		
+		it "uses the lowest stream ID from successive GOAWAY frames" do
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			
+			another_stream = client.create_stream do |connection, id|
+				stream_class.create(connection, id)
+			end
+			another_stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			
+			goaway = Protocol::HTTP2::GoawayFrame.new
+			goaway.pack(3, 0, "")
+			server.write_frame(goaway)
+			client.read_frame
+			
+			expect(client.goaway_stream_id).to be == 3
+			expect(another_stream.state).not.to be == :closed
+			
+			goaway = Protocol::HTTP2::GoawayFrame.new
+			goaway.pack(1, 0, "")
+			server.write_frame(goaway)
+			client.read_frame
+			
+			expect(client.goaway_stream_id).to be == 1
+			expect(another_stream.state).to be == :closed
+			expect(another_stream.error).to be_a(Protocol::HTTP::RefusedError)
+			expect(client.streams.keys).to be == [1]
+			
+			goaway = Protocol::HTTP2::GoawayFrame.new
+			goaway.pack(3, 0, "")
+			server.write_frame(goaway)
+			client.read_frame
+			
+			# A later GOAWAY cannot raise the effective cutoff:
+			expect(client.goaway_stream_id).to be == 1
 		end
 		
 		it "drains the streams which were accepted before a graceful GOAWAY" do
@@ -633,7 +688,8 @@ with "client and server" do
 			
 			client.close
 			
-			expect(client.remote_stream_id).to be == 1
+			expect(client.goaway_stream_id).to be == 1
+			expect(client.remote_stream_id).to be == 0
 			expect(client).to be(:closed?)
 		end
 		

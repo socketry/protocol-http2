@@ -375,7 +375,11 @@ with "client and server" do
 			
 			expect(client.read_frame).to be_a Protocol::HTTP2::GoawayFrame
 			expect(client.remote_stream_id).to be == 1
-			expect(client).to be(:closed?)
+			
+			# The server accepted stream 1 and is still processing it, so the connection is not closed yet:
+			expect(client).to be(:goaway_received?)
+			expect(client).to be(:draining?)
+			expect(client).not.to be(:closed?)
 			
 			# The server will ignore this frame as it was sent after the graceful shutdown:
 			server.read_frame
@@ -389,6 +393,10 @@ with "client and server" do
 			client.read_frame
 			
 			expect(stream.state).to be == :closed
+			
+			# There is nothing left to drain, so the connection is closed:
+			expect(client).not.to be(:draining?)
+			expect(client).to be(:closed?)
 		end
 		
 		let(:stream_class) do
@@ -442,6 +450,132 @@ with "client and server" do
 			
 			# The processed stream (id=1) should still be open:
 			expect(stream.state).not.to be == :closed
+			
+			# Unprocessed streams are removed from the connection, so what remains is exactly what we are waiting for:
+			expect(client.streams.keys).to be == [1]
+		end
+		
+		it "drains the streams which were accepted before a graceful GOAWAY" do
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			
+			another_stream = client.create_stream do |connection, id|
+				stream_class.create(connection, id)
+			end
+			another_stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			
+			# Establish both request streams on the server:
+			server.read_frame
+			server.read_frame
+			
+			# The server accepted both streams, but will not accept any more:
+			server.send_goaway(0)
+			
+			client.read_frame
+			
+			expect(client).to be(:goaway_received?)
+			expect(client).to be(:draining?)
+			expect(client).not.to be(:closed?)
+			expect(client.streams.keys).to be == [1, 3]
+			
+			# Both streams still receive their response:
+			server.streams[1].send_headers(response_headers, Protocol::HTTP2::END_STREAM)
+			client.read_frame
+			
+			expect(stream.state).to be == :closed
+			expect(client).to be(:draining?)
+			expect(client).not.to be(:closed?)
+			
+			server.streams[3].send_headers(response_headers, Protocol::HTTP2::END_STREAM)
+			client.read_frame
+			
+			expect(another_stream.state).to be == :closed
+			expect(another_stream.error).to be_nil
+			
+			# The last accepted stream completed, so the connection is closed:
+			expect(client).not.to be(:draining?)
+			expect(client).to be(:closed?)
+		end
+		
+		it "refuses to create new streams after a graceful GOAWAY" do
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			server.read_frame
+			
+			server.send_goaway(0)
+			client.read_frame
+			
+			expect(client).to be(:draining?)
+			
+			expect do
+				client.create_stream
+			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Cannot create stream 3 after GOAWAY/)
+			
+			# The stream the server accepted is unaffected:
+			expect(client.streams.keys).to be == [1]
+		end
+		
+		it "still accepts the streams the remote peer initiates while draining" do
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			server.read_frame
+			
+			server.send_goaway(0)
+			client.read_frame
+			
+			expect(client).to be(:draining?)
+			
+			# `last_stream_id` only covers the streams we initiate, so the server can still push on the stream it accepted. Its frames must be processed like any other: dropping them would desynchronise the HPACK context shared by the whole connection.
+			promised_stream = server.streams[1].send_push_promise(request_headers)
+			client.read_frame
+			
+			expect(client.streams.keys).to be == [1, promised_stream.id]
+			
+			promised_stream.send_headers(response_headers, Protocol::HTTP2::END_STREAM)
+			
+			expect(client.read_frame).to be_a(Protocol::HTTP2::HeadersFrame)
+			expect(client.streams[promised_stream.id].state).to be == :half_closed_local
+		end
+		
+		it "decides the state of the connection even if a stream callback raises" do
+			raising_stream_class = Class.new(Protocol::HTTP2::Stream) do
+				def closed(error)
+					super
+					
+					raise "Error in closed callback!" if error
+				end
+			end
+			
+			another_stream = client.create_stream do |connection, id|
+				raising_stream_class.create(connection, id)
+			end
+			another_stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			
+			# The server did not process anything, so the stream is refused and its callback raises:
+			server.send_goaway(0)
+			
+			expect do
+				client.read_frame
+			end.to raise_exception(RuntimeError, message: be =~ /Error in closed callback/)
+			
+			expect(client).to be(:goaway_received?)
+			expect(client).not.to be(:draining?)
+			expect(client).to be(:closed?)
+		end
+		
+		it "closes the connection immediately if there is nothing to drain" do
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			server.read_frame
+			
+			# The server processes the stream before shutting down:
+			server.streams[1].send_headers(response_headers, Protocol::HTTP2::END_STREAM)
+			server.send_goaway(0)
+			
+			client.read_frame
+			expect(stream.state).to be == :closed
+			
+			client.read_frame
+			
+			expect(client).to be(:goaway_received?)
+			expect(client).not.to be(:draining?)
+			expect(client).to be(:closed?)
 		end
 		
 		it "closes all streams with RefusedError on GOAWAY with last_stream_id=0" do

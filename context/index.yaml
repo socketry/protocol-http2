@@ -3,6 +3,8 @@
 ---
 description: A low level implementation of the HTTP/2 protocol.
 metadata:
+  bug_tracker_uri: https://github.com/socketry/protocol-http2/issues
+  changelog_uri: https://github.com/socketry/protocol-http2/blob/main/releases.md
   documentation_uri: https://socketry.github.io/protocol-http2/
   source_code_uri: https://github.com/socketry/protocol-http2.git
 files:

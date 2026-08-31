@@ -14,6 +14,11 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.27.0
+
+  - On a graceful `GOAWAY` (error code `0`), keep the connection open until the streams the remote peer accepted have completed, instead of closing it immediately and failing those requests with `EOFError`.
+  - `Connection#create_stream` refuses to open a locally-initiated stream once a `GOAWAY` has been received, as required by RFC 9113 §6.8.
+
 ### v0.26.2
 
   - Ignore the reserved high bit when decoding GOAWAY last stream IDs.
@@ -51,13 +56,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
 ### v0.21.0
 
   - **Breaking**: Removed support for priority frame and stream dependencies. The `Protocol::HTTP2::Stream` class no longer tracks dependencies, and `Stream#send_headers` no longer takes `priority` as the first argument. This change simplifies the internal implementation significantly as HTTP/2 priority frames have been deprecated in the protocol specification.
-
-### v0.20.0
-
-  - Improved performance of dependency management by avoiding linear search operations.
-  - Removed `traces` as a required dependency - it's now optional and only used when explicitly needed.
-  - Added better documentation for `maximum_concurrent_streams` setting.
-  - Restored 100% test coverage and exposed trace provider for optional tracing support.
 
 ## See Also
 

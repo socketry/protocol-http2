@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.27.0
 
   - On a graceful `GOAWAY` (error code `0`), keep the connection open until the streams the remote peer accepted have completed, instead of closing it immediately and failing those requests with `EOFError`.
   - `Connection#create_stream` refuses to open a locally-initiated stream once a `GOAWAY` has been received, as required by RFC 9113 §6.8.

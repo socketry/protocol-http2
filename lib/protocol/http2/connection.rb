@@ -111,12 +111,6 @@ module Protocol
 				!@goaway_stream_id.nil?
 			end
 			
-			# Whether the connection is draining active streams after the remote peer sent a graceful GOAWAY frame. Such a connection is still readable and those streams may still exchange frames, but it must not be used to initiate new streams.
-			# @returns [Boolean] True if a graceful shutdown is in progress and streams are still active.
-			def draining?
-				self.goaway_received? && !self.closed? && @streams.any?
-			end
-			
 			# Transition the connection into the closed state if a graceful GOAWAY was received and there is nothing left to drain.
 			#
 			# As with {close!}, this is a state transition only: the owner of the connection is responsible for closing the underlying framer.

@@ -383,7 +383,6 @@ with "client and server" do
 			
 			# The server accepted stream 1 and is still processing it, so the connection is not closed yet:
 			expect(client).to be(:goaway_received?)
-			expect(client).to be(:draining?)
 			expect(client).not.to be(:closed?)
 			
 			# The server will ignore this frame as it was sent after the graceful shutdown:
@@ -400,7 +399,6 @@ with "client and server" do
 			expect(stream.state).to be == :closed
 			
 			# There is nothing left to drain, so the connection is closed:
-			expect(client).not.to be(:draining?)
 			expect(client).to be(:closed?)
 		end
 		
@@ -416,7 +414,8 @@ with "client and server" do
 			expect(server.remote_stream_id).to be == 1
 			expect(server.streams.keys).to be == [1]
 			expect(server.streams[1].state).to be == :half_closed_remote
-			expect(server).to be(:draining?)
+			expect(server).to be(:goaway_received?)
+			expect(server).not.to be(:closed?)
 		end
 		
 		let(:stream_class) do
@@ -528,7 +527,6 @@ with "client and server" do
 			client.read_frame
 			
 			expect(client).to be(:goaway_received?)
-			expect(client).to be(:draining?)
 			expect(client).not.to be(:closed?)
 			expect(client.streams.keys).to be == [1, 3]
 			
@@ -537,8 +535,8 @@ with "client and server" do
 			client.read_frame
 			
 			expect(stream.state).to be == :closed
-			expect(client).to be(:draining?)
 			expect(client).not.to be(:closed?)
+			expect(client.streams.keys).to be == [3]
 			
 			server.streams[3].send_headers(response_headers, Protocol::HTTP2::END_STREAM)
 			client.read_frame
@@ -547,7 +545,6 @@ with "client and server" do
 			expect(another_stream.error).to be_nil
 			
 			# The last accepted stream completed, so the connection is closed:
-			expect(client).not.to be(:draining?)
 			expect(client).to be(:closed?)
 		end
 		
@@ -558,7 +555,8 @@ with "client and server" do
 			server.send_goaway(0)
 			client.read_frame
 			
-			expect(client).to be(:draining?)
+			expect(client).to be(:goaway_received?)
+			expect(client).not.to be(:closed?)
 			
 			expect do
 				client.create_stream
@@ -568,14 +566,15 @@ with "client and server" do
 			expect(client.streams.keys).to be == [1]
 		end
 		
-		it "still accepts the streams the remote peer initiates while draining" do
+		it "still accepts streams initiated by the remote peer after GOAWAY" do
 			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			server.read_frame
 			
 			server.send_goaway(0)
 			client.read_frame
 			
-			expect(client).to be(:draining?)
+			expect(client).to be(:goaway_received?)
+			expect(client).not.to be(:closed?)
 			
 			# `last_stream_id` only covers the streams we initiate, so the server can still push on the stream it accepted. Its frames must be processed like any other: dropping them would desynchronise the HPACK context shared by the whole connection.
 			promised_stream = server.streams[1].send_push_promise(request_headers)
@@ -611,7 +610,6 @@ with "client and server" do
 			end.to raise_exception(RuntimeError, message: be =~ /Error in closed callback/)
 			
 			expect(client).to be(:goaway_received?)
-			expect(client).not.to be(:draining?)
 			expect(client).to be(:closed?)
 		end
 		
@@ -629,7 +627,6 @@ with "client and server" do
 			client.read_frame
 			
 			expect(client).to be(:goaway_received?)
-			expect(client).not.to be(:draining?)
 			expect(client).to be(:closed?)
 		end
 		

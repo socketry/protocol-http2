@@ -3,6 +3,7 @@
 # Released under the MIT License.
 # Copyright, 2019-2026, by Samuel Williams.
 # Copyright, 2023, by Marco Concetto Rudilosso.
+# Copyright, 2026, by Denis Talakevich.
 
 require "protocol/http2/connection_context"
 

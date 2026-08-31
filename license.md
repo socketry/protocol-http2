@@ -5,6 +5,7 @@ Copyright, 2019, by Yuta Iwama.
 Copyright, 2020, by Olle Jonsson.  
 Copyright, 2023, by Marco Concetto Rudilosso.  
 Copyright, 2024, by Adam Petro.  
+Copyright, 2026, by Denis Talakevich.  
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

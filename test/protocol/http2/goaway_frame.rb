@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Released under the MIT License.
-# Copyright, 2019-2024, by Samuel Williams.
+# Copyright, 2019-2026, by Samuel Williams.
 
 require "protocol/http2/goaway_frame"
 require "protocol/http2/a_frame"

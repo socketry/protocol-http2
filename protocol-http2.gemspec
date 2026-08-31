@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
 	spec.version = Protocol::HTTP2::VERSION
 	
 	spec.summary = "A low level implementation of the HTTP/2 protocol."
-	spec.authors = ["Samuel Williams", "Yuta Iwama", "Adam Petro", "Marco Concetto Rudilosso", "Olle Jonsson"]
+	spec.authors = ["Samuel Williams", "Yuta Iwama", "Adam Petro", "Denis Talakevich", "Marco Concetto Rudilosso", "Olle Jonsson"]
 	spec.license = "MIT"
 	
 	spec.cert_chain  = ["release.cert"]
@@ -16,6 +16,8 @@ Gem::Specification.new do |spec|
 	spec.homepage = "https://github.com/socketry/protocol-http2"
 	
 	spec.metadata = {
+		"bug_tracker_uri" => "https://github.com/socketry/protocol-http2/issues",
+		"changelog_uri" => "https://github.com/socketry/protocol-http2/blob/main/releases.md",
 		"documentation_uri" => "https://socketry.github.io/protocol-http2/",
 		"source_code_uri" => "https://github.com/socketry/protocol-http2.git",
 	}

@@ -249,6 +249,7 @@ module Protocol
 				@state = :closed
 				@connection.delete(@id)
 				
+				# `NO_ERROR` represents an orderly stream closure, so it is passed to `closed` as `nil` rather than converted to an exception.
 				if error_code == REFUSED_STREAM
 					error = ::Protocol::HTTP::RefusedError.new("Stream refused.")
 				elsif error_code && error_code != NO_ERROR

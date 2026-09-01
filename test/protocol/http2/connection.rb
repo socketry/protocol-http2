@@ -448,6 +448,24 @@ with "client and server" do
 			expect(stream.error).to be_a(Protocol::HTTP::RefusedError)
 		end
 		
+		it "closes stream without an error on NO_ERROR" do
+			stream = client.create_stream do |connection, id|
+				stream_class.create(connection, id)
+			end
+			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+			
+			# Establish request stream on server:
+			server.read_frame
+			
+			# Server closes the stream without an error:
+			server.streams[stream.id].send_reset_stream(Protocol::HTTP2::NO_ERROR)
+			
+			client.read_frame
+			
+			expect(stream.state).to be == :closed
+			expect(stream.error).to be_nil
+		end
+		
 		it "closes unprocessed streams with RefusedError on graceful GOAWAY" do
 			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			

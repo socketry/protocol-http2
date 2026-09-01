@@ -239,22 +239,21 @@ module Protocol
 				return self
 			end
 			
-			# The stream has been closed. If closed due to a stream reset, the error will be set.
+			# The stream has been closed. If closed due to a stream reset with a non-zero error code, the error will be set.
 			def closed(error = nil)
 			end
 			
 			# Transition the stream into the closed state.
-			# @parameter error_code [Integer] the error code if the stream was closed due to a stream reset.
+			# @parameter error_code [Integer | Nil] The error code if the stream was closed due to a stream reset.
 			def close!(error_code = nil)
 				@state = :closed
 				@connection.delete(@id)
 				
-				if error_code
-					if error_code == REFUSED_STREAM
-						error = ::Protocol::HTTP::RefusedError.new("Stream refused.")
-					else
-						error = StreamError.for(error_code)
-					end
+				# `NO_ERROR` represents an orderly stream closure, so it is passed to `closed` as `nil` rather than converted to an exception.
+				if error_code == REFUSED_STREAM
+					error = ::Protocol::HTTP::RefusedError.new("Stream refused.")
+				elsif error_code && error_code != NO_ERROR
+					error = StreamError.for(error_code)
 				end
 				
 				self.closed(error)

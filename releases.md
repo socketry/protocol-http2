@@ -2,8 +2,7 @@
 
 ## Unreleased
 
-  - Treat `RST_STREAM(NO_ERROR)` as an orderly stream closure rather than
-    constructing a `StreamError`.
+  - Treat `RST_STREAM(NO_ERROR)` as an orderly stream closure rather than constructing a `StreamError`.
 
 ## v0.27.0
 

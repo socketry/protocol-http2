@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.28.0
 
   - Treat `RST_STREAM(NO_ERROR)` as an orderly stream closure rather than constructing a `StreamError`.
 

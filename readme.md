@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.28.0
+
+  - Treat `RST_STREAM(NO_ERROR)` as an orderly stream closure rather than constructing a `StreamError`.
+
 ### v0.27.0
 
   - On a graceful `GOAWAY` (error code `0`), keep the connection open until the streams the remote peer accepted have completed, instead of closing it immediately and failing those requests with `EOFError`.
@@ -52,10 +56,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
 ### v0.22.0
 
   - [Added Priority Update Frame and Stream Priority](https://socketry.github.io/protocol-http2/releases/index#added-priority-update-frame-and-stream-priority)
-
-### v0.21.0
-
-  - **Breaking**: Removed support for priority frame and stream dependencies. The `Protocol::HTTP2::Stream` class no longer tracks dependencies, and `Stream#send_headers` no longer takes `priority` as the first argument. This change simplifies the internal implementation significantly as HTTP/2 priority frames have been deprecated in the protocol specification.
 
 ## See Also
 

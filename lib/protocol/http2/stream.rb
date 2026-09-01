@@ -239,8 +239,7 @@ module Protocol
 				return self
 			end
 			
-			# The stream has been closed. If closed due to a stream reset with a
-			# non-zero error code, the error will be set.
+			# The stream has been closed. If closed due to a stream reset with a non-zero error code, the error will be set.
 			def closed(error = nil)
 			end
 			

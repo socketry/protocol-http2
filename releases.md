@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.29.0
 
   - Decode and discard `HEADERS` received for a locally-initiated stream which was already reset, e.g. a response in flight when the request was cancelled, rather than failing the connection with `ProtocolError`. This keeps the HPACK decoder state synchronized with the remote peer (RFC 9113 §5.1).
   - `CONTINUATION` frames generated when packing a large header block now carry the stream ID of the frame they continue.

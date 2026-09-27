@@ -1,6 +1,6 @@
 # Releases
 
-## Unreleased
+## v0.29.1
 
   - Sign releases with the Socketry release certificate.
 

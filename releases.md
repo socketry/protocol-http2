@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - Sign releases with the Socketry release certificate.
+
 ## v0.29.0
 
   - Decode and discard `HEADERS` received for a locally-initiated stream which was already reset, e.g. a response in flight when the request was cancelled, rather than failing the connection with `ProtocolError`. This keeps the HPACK decoder state synchronized with the remote peer (RFC 9113 §5.1).

@@ -66,6 +66,14 @@ describe Protocol::HTTP2::HeadersFrame do
 			expect(frame.continuation.length).to be == 3
 		end
 		
+		it "generates continuation frames for the same stream" do
+			frame = subject.new(1)
+			frame.pack "Hello World, Goodbye World", maximum_size: 8
+			
+			expect(frame.continuation.stream_id).to be == 1
+			expect(frame.continuation.continuation.stream_id).to be == 1
+		end
+		
 		it "can read and write continuation frames" do
 			frame.write(stream)
 			stream.rewind

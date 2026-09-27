@@ -510,6 +510,15 @@ module Protocol
 				
 				if stream = @streams[stream_id]
 					stream.receive_headers(frame)
+				elsif local_stream_id?(stream_id) and closed_stream_id?(stream_id)
+					# This can occur if we reset a stream while the remote peer was sending headers for it,
+					# e.g. a response which was already in flight when the request was cancelled.
+					# The header block must still be decoded in order to keep the HPACK decoder state
+					# synchronized with the remote peer's encoder, but the decoded headers are discarded
+					# (RFC 9113 §5.1).
+					decode_headers(frame.unpack)
+					
+					return nil
 				else
 					if stream_id <= @remote_stream_id
 						raise ProtocolError, "Invalid stream id: #{stream_id} <= #{@remote_stream_id}!"

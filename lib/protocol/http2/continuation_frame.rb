@@ -90,7 +90,7 @@ module Protocol
 					
 					remainder = data.byteslice(maximum_size, data.bytesize-maximum_size)
 					
-					@continuation = ContinuationFrame.new
+					@continuation = ContinuationFrame.new(@stream_id)
 					@continuation.pack(remainder, maximum_size: maximum_size)
 				else
 					set_flags(END_HEADERS)

@@ -7,6 +7,6 @@
 module Protocol
 	# @namespace
 	module HTTP2
-		VERSION = "0.29.0"
+		VERSION = "0.29.1"
 	end
 end

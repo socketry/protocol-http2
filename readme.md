@@ -14,6 +14,10 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.29.1
+
+  - Sign releases with the Socketry release certificate.
+
 ### v0.29.0
 
   - Decode and discard `HEADERS` received for a locally-initiated stream which was already reset, e.g. a response in flight when the request was cancelled, rather than failing the connection with `ProtocolError`. This keeps the HPACK decoder state synchronized with the remote peer (RFC 9113 §5.1).
@@ -51,12 +55,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
 ### v0.23.0
 
   - Introduce a limit to the number of CONTINUATION frames that can be read to prevent resource exhaustion. The default limit is 8 continuation frames, which means a total of 9 frames (1 initial + 8 continuation). This limit can be adjusted by passing a different value to the `limit` parameter in the `Continued.read` method. Setting the limit to 0 will only read the initial frame without any continuation frames. In order to change the default, you can redefine the `LIMIT` constant in the `Protocol::HTTP2::Continued` module, OR you can pass a different frame class to the framer.
-
-### v0.22.1
-
-  - Improved tracing performance by only tracing framer operations when in an active trace context.
-  - Updated `protocol-http` dependency version in gemspec.
-  - Code modernization and documentation improvements.
 
 ## See Also
 

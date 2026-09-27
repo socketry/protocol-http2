@@ -14,6 +14,11 @@ Please see the [project documentation](https://socketry.github.io/protocol-http2
 
 Please see the [project releases](https://socketry.github.io/protocol-http2/releases/index) for all releases.
 
+### v0.29.0
+
+  - Decode and discard `HEADERS` received for a locally-initiated stream which was already reset, e.g. a response in flight when the request was cancelled, rather than failing the connection with `ProtocolError`. This keeps the HPACK decoder state synchronized with the remote peer (RFC 9113 §5.1).
+  - `CONTINUATION` frames generated when packing a large header block now carry the stream ID of the frame they continue.
+
 ### v0.28.0
 
   - Treat `RST_STREAM(NO_ERROR)` as an orderly stream closure rather than constructing a `StreamError`.
@@ -52,10 +57,6 @@ Please see the [project releases](https://socketry.github.io/protocol-http2/rele
   - Improved tracing performance by only tracing framer operations when in an active trace context.
   - Updated `protocol-http` dependency version in gemspec.
   - Code modernization and documentation improvements.
-
-### v0.22.0
-
-  - [Added Priority Update Frame and Stream Priority](https://socketry.github.io/protocol-http2/releases/index#added-priority-update-frame-and-stream-priority)
 
 ## See Also
 

@@ -366,6 +366,124 @@ with "client and server" do
 			end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid stream id/)
 		end
 		
+		with "response headers in flight when the stream is cancelled" do
+			# The custom header is added to the HPACK dynamic table when it is first encoded, so subsequent header blocks refer to it by index:
+			let(:response_headers) {[[":status", "200"], ["x-request-id", "7f0c9a1e"]]}
+			
+			def before
+				super
+				
+				stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+				server.read_frame
+			end
+			
+			def cancel_stream
+				stream.send_reset_stream(Protocol::HTTP2::CANCEL)
+				
+				expect(stream.state).to be == :closed
+				expect(client.streams).not.to have_keys(stream.id)
+				
+				frame = server.read_frame
+				expect(frame).to be_a(Protocol::HTTP2::ResetStreamFrame)
+				expect(server.streams).not.to have_keys(stream.id)
+			end
+			
+			def write_headers(stream_id, data, **options)
+				frame = Protocol::HTTP2::HeadersFrame.new(stream_id, Protocol::HTTP2::END_STREAM)
+				frame.pack(data, **options)
+				
+				yield frame if block_given?
+				
+				server.write_frame(frame)
+				
+				return frame
+			end
+			
+			def expect_synchronized_decoder
+				another_stream = client.create_stream
+				another_stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
+				server.read_frame
+				
+				server.streams[another_stream.id].send_headers(response_headers, Protocol::HTTP2::END_STREAM)
+				
+				expect(another_stream).to receive(:process_headers) do |frame|
+					headers = super(frame)
+					
+					expect(headers).to be == response_headers
+				end
+				
+				frame = client.read_frame
+				expect(frame).to be_a(Protocol::HTTP2::HeadersFrame)
+				
+				# Both fields are encoded as a single byte index, the custom header referring to the dynamic table entry introduced by the discarded header block:
+				expect(frame.unpack.bytesize).to be == 2
+				
+				expect(another_stream.state).to be == :closed
+			end
+			
+			it "discards the headers and keeps the connection usable" do
+				server.streams[stream.id].send_headers(response_headers, Protocol::HTTP2::END_STREAM)
+				
+				cancel_stream
+				
+				frame = client.read_frame
+				expect(frame).to be_a(Protocol::HTTP2::HeadersFrame)
+				expect(frame.stream_id).to be == stream.id
+				
+				expect(client).not.to be(:closed?)
+				expect(client.streams).not.to have_keys(stream.id)
+				
+				expect_synchronized_decoder
+			end
+			
+			it "decodes the complete header block split across continuation frames" do
+				cancel_stream
+				
+				frame = write_headers(stream.id, server.encode_headers(response_headers), maximum_size: 4)
+				expect(frame).to be(:continued?)
+				
+				expect(client.read_frame).to be_a(Protocol::HTTP2::HeadersFrame)
+				expect(client).not.to be(:closed?)
+				expect(client.streams).not.to have_keys(stream.id)
+				
+				expect_synchronized_decoder
+			end
+			
+			it "rejects malformed header blocks" do
+				cancel_stream
+				
+				write_headers(stream.id, "\xFF".b)
+				
+				expect do
+					client.read_frame
+				end.to raise_exception(Protocol::HPACK::Error)
+				
+				expect(client).to be(:closed?)
+			end
+			
+			it "rejects invalid continuation sequences" do
+				cancel_stream
+				
+				write_headers(stream.id, server.encode_headers(response_headers), maximum_size: 4) do |frame|
+					frame.continuation.stream_id = stream.id + 2
+				end
+				
+				expect do
+					client.read_frame
+				end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid stream id/)
+			end
+			
+			it "rejects headers for idle local streams" do
+				write_headers(stream.id + 2, server.encode_headers(response_headers))
+				
+				expect do
+					client.read_frame
+				end.to raise_exception(Protocol::HTTP2::ProtocolError, message: be =~ /Invalid stream id/)
+				
+				expect(client).to be(:closed?)
+			end
+		end
+		
 		it "client can handle graceful shutdown" do
 			stream.send_headers(request_headers, Protocol::HTTP2::END_STREAM)
 			

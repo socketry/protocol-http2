@@ -9,7 +9,7 @@ gemspec
 
 group :maintenance, optional: true do
 	gem "bake-modernize"
-	gem "bake-gem-github"
+	gem "bake-gem-github", "~> 0.7.0"
 	gem "bake-releases"
 	
 	gem "agent-context"

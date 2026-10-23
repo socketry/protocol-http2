@@ -2,6 +2,7 @@
 
 # Released under the MIT License.
 # Copyright, 2019-2024, by Samuel Williams.
+# Copyright, 2026, by Martin Ek.
 
 require "protocol/http2/headers_frame"
 

@@ -4,6 +4,7 @@
 # Copyright, 2019-2026, by Samuel Williams.
 # Copyright, 2023, by Marco Concetto Rudilosso.
 # Copyright, 2026, by Denis Talakevich.
+# Copyright, 2026, by Martin Ek.
 
 require_relative "framer"
 require_relative "flow_controlled"

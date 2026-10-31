@@ -1,5 +1,9 @@
 # Releases
 
+## Unreleased
+
+  - `Connection#write_frame` and `#write_frames` raise `EOFError` when the connection closes while the write waits for the lock or the socket, rather than `NoMethodError` on the cleared framer.
+
 ## v0.29.1
 
   - Sign releases with the Socketry release certificate.

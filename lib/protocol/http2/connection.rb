@@ -298,12 +298,13 @@ module Protocol
 			
 			# Write a single frame to the connection.
 			# @parameter frame [Frame] The frame to write.
+			# @raises [EOFError] If the connection is closed.
 			def write_frame(frame)
 				synchronize do
-					@framer.write_frame(frame)
+					open_framer.write_frame(frame)
 				end
 				
-				@framer.flush
+				open_framer.flush
 			end
 			
 			# Write multiple frames within a synchronized block.
@@ -311,15 +312,11 @@ module Protocol
 			#   @parameter framer [Framer] The framer instance.
 			# @raises [EOFError] If the connection is closed.
 			def write_frames
-				if @framer
-					synchronize do
-						yield @framer
-					end
-					
-					@framer.flush
-				else
-					raise EOFError, "Connection closed!"
+				synchronize do
+					yield open_framer
 				end
+				
+				open_framer.flush
 			end
 			
 			# Update local settings and adjust stream window capacities.
@@ -667,6 +664,13 @@ module Protocol
 			# @parameter frame [Frame] The frame to receive.
 			def receive_frame(frame)
 				# ignore.
+			end
+			
+			private
+			
+			# The connection is closed, and `@framer` cleared, by the task reading frames, which can happen while a writer waits for the lock or for the socket, so it is checked again at each use.
+			def open_framer
+				@framer or raise EOFError, "Connection closed!"
 			end
 		end
 	end

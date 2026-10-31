@@ -104,6 +104,58 @@ describe Protocol::HTTP2::Connection do
 		end.to raise_exception(EOFError, message: be =~ /Connection closed/)
 	end
 	
+	with "a connection which closes while a write waits for the lock" do
+		def before
+			super
+			
+			def connection.synchronize
+				close
+				super
+			end
+		end
+		
+		it "can't write a frame" do
+			expect do
+				connection.write_frame(Protocol::HTTP2::PingFrame.new)
+			end.to raise_exception(EOFError, message: be =~ /Connection closed/)
+		end
+		
+		it "can't write frames" do
+			expect do
+				connection.write_frames do |framer|
+				end
+			end.to raise_exception(EOFError, message: be =~ /Connection closed/)
+		end
+	end
+	
+	with "a connection which closes while a write waits for the socket" do
+		def before
+			super
+			
+			def connection.synchronize
+				super
+			ensure
+				close
+			end
+		end
+		
+		it "can't flush a frame" do
+			frame = Protocol::HTTP2::PingFrame.new
+			frame.pack("12345678")
+			
+			expect do
+				connection.write_frame(frame)
+			end.to raise_exception(EOFError, message: be =~ /Connection closed/)
+		end
+		
+		it "can't flush frames" do
+			expect do
+				connection.write_frames do |framer|
+				end
+			end.to raise_exception(EOFError, message: be =~ /Connection closed/)
+		end
+	end
+	
 	with "#close" do
 		it "closes the connection without active streams" do
 			# No active streams
